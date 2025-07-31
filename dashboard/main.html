@@ -1,0 +1,239 @@
+<?php
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "dashboard_db";
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Example: Get population breakdowns for charts
+$totalPopulation = 0;
+$ageGroups = ['0-17' => 0, '18-59' => 0, '60+' => 0];
+$gender = ['Male' => 0, 'Female' => 0];
+$barangay = [];
+$birthdaysToday = [];
+$birthdaysUpcoming = [];
+
+$sql = "SELECT * FROM client";
+$result = $conn->query($sql);
+
+$data = [];
+while ($row = $result->fetch_assoc()) {
+    $totalPopulation++;
+    // Age groups
+    if ($row['age'] <= 17) $ageGroups['0-17']++;
+    elseif ($row['age'] <= 59) $ageGroups['18-59']++;
+    else $ageGroups['60+']++;
+    // Gender (case-insensitive, accepts M/F/male/female)
+    $sex = strtolower(trim($row['sex']));
+    if ($sex === 'male' || $sex === 'm') {
+        $gender['Male']++;
+    } elseif ($sex === 'female' || $sex === 'f') {
+        $gender['Female']++;
+    }
+    // Barangay
+    $barangayName = $row['address'];
+    if (!isset($barangay[$barangayName])) $barangay[$barangayName] = 0;
+    $barangay[$barangayName]++;
+    // Birthdays
+    if (date('m-d', strtotime($row['birthday'])) == date('m-d')) $birthdaysToday[] = $row;
+    elseif (strtotime($row['birthday']) > strtotime(date('Y-m-d')) && strtotime($row['birthday']) <= strtotime('+7 days')) $birthdaysUpcoming[] = $row;
+    $data[] = $row;
+}
+
+// Example: Calculate growth rate based on last year and current year
+$lastYearPopulation = 0;
+$currentYearPopulation = $totalPopulation;
+
+// Calculate last year's population (replace with your actual query if available)
+foreach ($data as $row) {
+    if (date('Y', strtotime($row['created_at'] ?? $row['birthday'])) == date('Y', strtotime('-1 year'))) {
+        $lastYearPopulation++;
+    }
+}
+
+// Avoid division by zero
+if ($lastYearPopulation > 0) {
+    $growthRate = round((($currentYearPopulation - $lastYearPopulation) / $lastYearPopulation) * 100, 2) . '%';
+} else {
+    $growthRate = 'N/A';
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>District Dos</title>
+    <link rel="stylesheet" href="./frontend/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="./frontend/dashboard.js"></script>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-2 d-none d-md-block bg-light sidebar py-4">
+            <div class="position-sticky">
+                <ul class="nav flex-column">
+                    <li class="nav-item mb-2"><a class="nav-link active" href="#"><span class="bi bi-house"></span> Dashboard</a></li>
+                    <li class="nav-item mb-2"><a class="nav-link" href="#"><span class="bi bi-calendar"></span> Calendar</a></li>
+                    <li class="nav-item mb-2"><a class="nav-link" href="#"><span class="bi bi-gear"></span> Setting</a></li>
+                </ul>
+            </div>
+        </nav>
+        <!-- Main Content -->
+        <main class="col-md-10 ms-sm-auto px-4">
+            <!-- Welcome Panel -->
+            <div class="welcome-panel mb-4">
+                <span class="emoji">🧑‍💻</span>
+                <div>
+                    <h2 class="mb-1">Hello, Admin!</h2>
+                    <p class="mb-0">Explore demographic data and activity in your community.</p>
+                </div>
+            </div>
+            <!-- Dashboard Cards -->
+            <div class="dashboard-cards mb-4">
+                <div class="card-population">
+                    <div class="card-title">Total Population</div>
+                    <div class="card-value">1200</div>
+                    <div class="card-sub">This month: 30</div>
+                </div>
+                <div class="card-male">
+                    <div class="card-title">Male</div>
+                    <div class="card-value">600</div>
+                </div>
+                <div class="card-female card-component">
+                    <div class="card-title">Female</div>
+                    <div class="card-value">600</div>
+                </div>
+                <div class="card-component">
+                    <div class="card-title">Growth Rate</div>
+                    <div class="card-value">2.5%</div>
+                </div>
+            </div>
+            <!-- Charts Row -->
+            <div class="dashboard-container">
+                <div class="row mb-4">
+                    <!-- Population Trend -->
+                    <div class="main-graph-area mb-4">
+                        <div class="graph-title">Population Trend</div>
+                        <canvas id="growthChart"></canvas>
+                    </div>
+                    <!-- Barangay Breakdown -->
+                    <div class="barangay-breakdown mb-4">
+                        <div class="graph-title">Barangay Breakdown</div>
+                        <canvas id="barangayChart"></canvas>
+                    </div>
+                    <!-- Age Groups -->
+                    <div class="main-graph-area mb-4">
+                        <div class="graph-title">Age Groups</div>
+                        <canvas id="ageChart"></canvas>
+                    </div>
+                    <!-- Gender Ratio -->
+                    <div class="main-graph-area mb-4">
+                        <div class="graph-title">Gender Ratio</div>
+                        <canvas id="genderChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <!-- Birthdays -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card-component">
+                        <div class="card-title">Today's Birthdays</div>
+                        <ul class="mb-0">
+                            <li>Juan Dela Cruz (1990-07-31)</li>
+                            <li>Maria Santos (1985-07-31)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card-component">
+                        <div class="card-title">Upcoming Birthdays</div>
+                        <ul class="mb-0">
+                            <li>Pedro Reyes (1992-08-02)</li>
+                            <li>Ana Lopez (1998-08-05)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- Population Table -->
+            <div class="main-graph-area mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="graph-title">Population Table</div>
+                    <div>
+                        <form action="#" method="post" enctype="multipart/form-data" class="d-inline">
+                            <input type="file" name="importFile" accept=".csv" style="display:none;" id="importFileInput" onchange="alert('Import functionality not implemented in static HTML!');">
+                            <button type="button" class="btn btn-success me-2" onclick="document.getElementById('importFileInput').click();">
+                                <span class="bi bi-upload"></span> Import CSV
+                            </button>
+                        </form>
+                        <a class="btn btn-primary" href="#" role="button">Add Resident</a>
+                    </div>
+                </div>
+                <table class="table table-striped" id="populationTable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Age</th>
+                            <th>Gender</th>
+                            <th>Address</th>
+                            <th>Contact</th>
+                            <th>Birthday</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Juan Dela Cruz</td>
+                            <td>34</td>
+                            <td>Male</td>
+                            <td>Barangay 1</td>
+                            <td>09123456789</td>
+                            <td>1990-07-31</td>
+                            <td>
+                                <a class='btn btn-secondary btn-sm' href="#">Edit</a>
+                                <a class='btn btn-danger btn-sm' href="#">Delete</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Maria Santos</td>
+                            <td>39</td>
+                            <td>Female</td>
+                            <td>Barangay 2</td>
+                            <td>09987654321</td>
+                            <td>1985-07-31</td>
+                            <td>
+                                <a class='btn btn-secondary btn-sm' href="#">Edit</a>
+                                <a class='btn btn-danger btn-sm' href="#">Delete</a>
+                            </td>
+                        </tr>
+                        <!-- Add more rows as needed -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+</div>
+<script>
+window.dashboardData = {
+    ageGroups: [200, 800, 200],
+    barangayLabels: ["Barangay 1", "Barangay 2"],
+    barangayData: [700, 500],
+    genderData: [600, 600],
+    totalPopulation: 1200,
+    growthData: [1000, 1100, 1150, 1180, 1200]
+};
+</script>
+</body>
+</html>
