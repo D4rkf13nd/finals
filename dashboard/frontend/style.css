@@ -1,0 +1,220 @@
+body {
+    background: #f7f9fb;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #222;
+    margin: 0;
+    padding: 0;
+}
+
+.sidebar {
+    min-height: 100vh;
+    background: #f8f9fa;
+    border-right: 1px solid #eee;
+}
+
+.sidebar .nav-link {
+    color: #333;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: background 0.2s, color 0.2s;
+}
+
+.sidebar .nav-link.active,
+.sidebar .nav-link:hover {
+    background: #e9ecef;
+    color: #0d6efd;
+    border-radius: 4px;
+}
+
+.welcome-panel {
+    background: #0d6efd;
+    color: #fff;
+    border-radius: 8px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.dashboard-cards {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.card-component,
+.card-population,
+.card-male {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    font-size: 1.2rem;
+    min-width: 180px;
+    flex: 1 1 220px;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.card-population {
+    background: linear-gradient(90deg, #0d6efd 60%, #6c757d 100%);
+    color: #fff;
+}
+
+.card-population .card-value,
+.card-male .card-value {
+    color: #fff;
+}
+
+.card-male {
+    background: linear-gradient(90deg, #022502 60%, #075e15 100%);
+    color: #fff;
+}
+
+.card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+}
+
+.card-value {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #0d6efd;
+}
+
+.card-sub {
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.main-graph-area,
+.barangay-breakdown,
+.profile-card,
+.recent-registrations,
+.security-section,
+.table {
+    background: #fff;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid #f0f0f0;
+    padding: 1.2rem;
+}
+
+.dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem 0;
+}
+
+.graph-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.7rem;
+}
+
+canvas {
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+    display: block;
+}
+
+#growthChart,
+#ageChart,
+#genderChart,
+#barangayChart {
+    width: 100%;
+    max-width: 500px;
+    min-height: 220px;
+    margin: 0 auto;
+    display: block;
+    background: none;
+    border-radius: 20px;
+}
+
+.table {
+    background: #fff;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    width: 100%;
+    overflow-x: auto;
+}
+
+.table th, .table td {
+    vertical-align: middle;
+    font-size: 0.97rem;
+    white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+    .dashboard-container {
+        max-width: 100%;
+        padding: 1rem;
+    }
+    .dashboard-cards {
+        gap: 0.7rem;
+    }
+}
+
+@media (max-width: 900px) {
+    .dashboard-cards {
+        flex-direction: column;
+        gap: 0.7rem;
+    }
+    .sidebar {
+        min-height: auto;
+    }
+    .main-graph-area,
+    .barangay-breakdown,
+    .card-component,
+    .card-population,
+    .card-male,
+    .welcome-panel,
+    .table,
+    .profile-card,
+    .recent-registrations,
+    .security-section {
+        margin-bottom: 1rem;
+        padding: 1rem;
+    }
+    #growthChart,
+    #ageChart,
+    #genderChart,
+    #barangayChart {
+        max-width: 100%;
+        min-height: 180px;
+    }
+    .welcome-panel {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .dashboard-container {
+        padding: 0.5rem;
+    }
+    .main-graph-area,
+    .barangay-breakdown,
+    .card-component,
+    .card-population,
+    .card-male,
+    .welcome-panel,
+    .table,
+    .profile-card,
+    .recent-registrations,
+    .security-section {
+        padding: 0.5rem;
+    }
+    .card-value {
+        font-size: 1.3rem;
+    }
+}
