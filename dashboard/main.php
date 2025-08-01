@@ -65,9 +65,9 @@ $registeredThisMonth = 0; // Set this if you want to show new registrations this
 $username = "Admin"; // Set your username variable if needed
 
 if (isset($_POST['delete_all'])) {
-    // Adjust table name as needed
-    $conn = new mysqli($servername, $username, $password, $dbname);
-    $conn->query("DELETE FROM residents"); // Replace 'residents' with your actual table name
+    // Fix: Use correct MySQL credentials and table name
+    $conn = new mysqli($servername, "root", $password, $dbname);
+    $conn->query("DELETE FROM pop_data");
     $conn->close();
     // Optionally, redirect to avoid resubmission
     header("Location: main.php?section=dashboard");
@@ -84,6 +84,7 @@ if (isset($_POST['delete_all'])) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="./frontend/dashboard.js"></script>
 </head>
 <body>
@@ -223,7 +224,7 @@ if (isset($_POST['delete_all'])) {
                                         <td><?= htmlspecialchars($row['birthday']) ?></td>
                                         <td>
                                             <a class='btn btn-secondary btn-sm' href='./backend/edit.php?id=<?= $row['id'] ?>'>Edit</a>
-                                            <a class='btn btn-danger btn-sm' href='./backend/delete.php?id=<?= $row['id'] ?>'>Delete</a>
+                                            <button class='btn btn-danger btn-sm' onclick='showDeleteModal(<?= $row['id'] ?>, "<?= htmlspecialchars($row['name']) ?>")'>Delete</button>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>
@@ -282,9 +283,33 @@ if (isset($_POST['delete_all'])) {
                         Are you sure you want to delete <b>ALL</b> population data? This action cannot be undone.
                       </div>
                       <div class="modal-footer">
-                        <form method="post">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" onclick="showFinalDeleteConfirmation()">Delete All</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Final Delete Confirmation Modal -->
+                <div class="modal fade" id="finalDeleteModal" tabindex="-1" aria-labelledby="finalDeleteModalLabel" aria-hidden="true">
+                  <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title text-danger" id="finalDeleteModalLabel">⚠️ Final Confirmation</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
+                        <div class="alert alert-danger">
+                          <strong>This will permanently delete ALL population data!</strong>
+                        </div>
+                        <p>To confirm, please type <strong>DELETE ALL DATA</strong> in the text box below:</p>
+                        <input type="text" id="deleteConfirmationInput" class="form-control" placeholder="Type DELETE ALL DATA here">
+                        <small class="text-muted">This action cannot be undone.</small>
+                      </div>
+                      <div class="modal-footer">
+                        <form method="post" id="finalDeleteForm">
                           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                          <button type="submit" name="delete_all" class="btn btn-danger">Delete All</button>
+                          <button type="submit" name="delete_all" class="btn btn-danger" id="finalDeleteBtn" disabled>I understand, delete all data</button>
                         </form>
                       </div>
                     </div>
@@ -307,10 +332,77 @@ if (isset($_POST['delete_all'])) {
                     var modal = new bootstrap.Modal(document.getElementById('deleteAllModal'));
                     modal.show();
                 }
+
+                // Show Final Delete Confirmation Modal
+                function showFinalDeleteConfirmation() {
+                    // Hide first modal
+                    var firstModal = bootstrap.Modal.getInstance(document.getElementById('deleteAllModal'));
+                    firstModal.hide();
+                    
+                    // Wait for first modal to fully close before showing second modal
+                    setTimeout(function() {
+                        // Reset input and button state
+                        const input = document.getElementById('deleteConfirmationInput');
+                        const button = document.getElementById('finalDeleteBtn');
+                        
+                        input.value = '';
+                        button.disabled = true;
+                        button.classList.remove('btn-danger');
+                        button.classList.add('btn-secondary');
+                        
+                        // Add input event listener for this modal instance
+                        input.addEventListener('input', function() {
+                            if (this.value.trim() === 'DELETE ALL DATA') {
+                                button.disabled = false;
+                                button.classList.remove('btn-secondary');
+                                button.classList.add('btn-danger');
+                            } else {
+                                button.disabled = true;
+                                button.classList.remove('btn-danger');
+                                button.classList.add('btn-secondary');
+                            }
+                        });
+                        
+                        // Show final confirmation modal
+                        var finalModal = new bootstrap.Modal(document.getElementById('finalDeleteModal'));
+                        finalModal.show();
+                    }, 300); // 300ms delay to ensure first modal is fully closed
+                }
+
                 </script>
             <?php endif; ?>
         </main>
     </div>
 </div>
+
+<!-- Delete Single Resident Modal (Global) -->
+<div class="modal fade" id="deleteResidentModal" tabindex="-1" aria-labelledby="deleteResidentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteResidentModalLabel">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete <strong id="residentName"></strong>? This action cannot be undone.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <a id="confirmDeleteBtn" class="btn btn-danger" href="#">Delete</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Global Delete Resident Modal Function
+function showDeleteModal(id, name) {
+    document.getElementById('residentName').textContent = name;
+    document.getElementById('confirmDeleteBtn').href = './backend/delete.php?id=' + id;
+    var modal = new bootstrap.Modal(document.getElementById('deleteResidentModal'));
+    modal.show();
+}
+</script>
+
 </body>
 </html>

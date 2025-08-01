@@ -21,10 +21,18 @@ $errorMessage = "";
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $name = $_POST['name'];
     $address = $_POST['address'];
-    $age = $_POST['age'];
     $sex = $_POST['sex'];
     $contact = $_POST['contact'];
     $birthday = $_POST['birthday'];
+    
+    // Calculate age from birthday
+    if (!empty($birthday)) {
+        $birthDate = new DateTime($birthday);
+        $today = new DateTime();
+        $age = $today->diff($birthDate)->y;
+    } else {
+        $age = $_POST['age']; // fallback to posted age
+    }
 
     do {
         if (empty($name) || empty($address) || empty($age) || empty($sex) || empty($contact) || empty($birthday)) {
@@ -128,7 +136,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             ";
         }
         ?>
-
+        <form method="post">
             <div class="row mb-3">
                 <label class="col-sm-3 col-form-label">Name</label>
                 <div class="col-sm-6">
@@ -143,8 +151,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
             <div class="row mb-3">
                 <label class="col-sm-3 col-form-label">Age</label>
-                <div class="col-sm-6">
-                    <input type="number" class="form-control" name="age" value="<?php echo htmlspecialchars($age); ?>">
+                   <div class="col-sm-6">
+                    <input type="text" class="form-control" name="age" value="<?php echo htmlspecialchars($age); ?>" readonly style="background-color: #f8f9fa;">
+                    <small class="text-muted">Age will be calculated from birthday</small>
                 </div>
             </div>
             <div class="row mb-3">
@@ -166,7 +175,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <div class="row mb-3">
                 <label class="col-sm-3 col-form-label">Birthday</label>
                 <div class="col-sm-6">
-                    <input type="date" class="form-control" name="birthday" value="<?php echo htmlspecialchars($birthday); ?>">
+                    <input type="date" class="form-control" name="birthday" value="<?php echo htmlspecialchars($birthday); ?>" onchange="calculateAge()">
                 </div>
             </div>
             <?php
@@ -182,11 +191,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <div class="row mb-3">
                 <div class="col-sm-6 offset-sm-3 d-flex gap-2">
                     <button type="submit" class="btn btn-primary">Submit</button>
-                    <a class="btn btn-outline-primary" href="/dashboard/main.php" role="button">Cancel</a>
+                    <a class="btn btn-outline-primary" href="../main.php" role="button">Cancel</a>
                 </div>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+function calculateAge() {
+    const birthdayInput = document.querySelector('input[name="birthday"]');
+    const ageInput = document.querySelector('input[name="age"]');
+    
+    if (birthdayInput.value) {
+        const birthDate = new Date(birthdayInput.value);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        
+        ageInput.value = age;
+    } else {
+        ageInput.value = '';
+    }
+}
+</script>
 </body>
 </html>

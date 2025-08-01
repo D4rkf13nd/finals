@@ -14,12 +14,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["importFile"])) {
             // Adjust column indexes as needed
             $name = $data[0] ?? '';
             $address = $data[1] ?? '';
-            $age = $data[2] ?? 0;
+            $age = intval($data[2] ?? 0);
             $gender = $data[3] ?? '';
             $contact = $data[4] ?? '';
             $birthday = $data[5] ?? '';
 
-            $sql = "INSERT INTO pop_data (name, address, age, gender, contact, birthday) VALUES (?, ?, ?, ?, ?, ?)";
+            // Calculate age from birthday if age is 0 or invalid
+            if (!empty($birthday) && ($age == 0 || $age < 1)) {
+                $birthDate = new DateTime($birthday);
+                $today = new DateTime();
+                $age = $today->diff($birthDate)->y;
+            }
+
+            $sql = "INSERT INTO pop_data (name, address, age, sex, contact, birthday) VALUES (?, ?, ?, ?, ?, ?)";
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("ssisss", $name, $address, $age, $gender, $contact, $birthday);
             $stmt->execute();
