@@ -1,0 +1,375 @@
+body {
+    background: #f8f9fa;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #222;
+    margin: 0;
+    padding: 0;
+}
+
+h2, .card-title {
+    font-weight: 600;
+}
+
+/* Sidebar */
+.sidebar {
+    background: #fff;
+    border-right: 1px solid #eee;
+    min-height: 100vh;
+    padding-left: 1rem;
+}
+
+.sidebar .nav-link {
+    color: #444;
+    font-weight: 500;
+    padding: 0.7rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 0.3rem;
+    transition: background 0.2s, color 0.2s;
+}
+
+.sidebar .nav-link.active,
+.sidebar .nav-link:hover {
+    background: #e9ecef;
+    color: #0d6efd;
+}
+
+/* Welcome Panel */
+.welcome-panel {
+    background: #fff;
+    border-radius: 10px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.welcome-panel .emoji {
+    font-size: 32px;
+}
+
+/* Dashboard Cards */
+.dashboard-cards {
+    display: flex;
+    gap: 10px; /* Reduced from 1rem to 0.5rem */
+    flex-wrap: wrap;
+    margin-bottom: 1rem; /* Optional: reduce bottom margin */
+    background-color: linear-gradient(135deg, #f0f4f8, #e9ecef);
+}
+.dashboard-cards-population {
+    background-color: #00a4f7;
+
+}
+
+/* Smaller charts */
+.main-graph-area canvas,
+.barangay-breakdown canvas {
+    max-width: 350px;
+    min-height: 180px;
+    margin: 0 auto;
+    display: block;
+}
+
+/* Colored containers */
+
+
+/* Optional: Give each card a slightly different color for distinction */
+.card-population 
+{ background:linear-gradient(135deg, #809cb8 0%, #34495E 100%);
+    border-radius: 30px;
+    padding: 1px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    width: 500px;
+    height: 200px;
+    transition: transform 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.card-male { background: linear-gradient(135deg, #FF6B6B 0%, #ff0000 100%);
+    border-radius: 30px;
+    padding: 1px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    width: 320px;
+    height: 200px;
+    transition: transform 0.2s;
+    gap :100px;
+}
+.card-female { background: linear-gradient(135deg, #FFD700 0%, #FFF3A0 100%);
+    border-radius: 30px;
+    padding: 1px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    width: 320px;
+    height: 200px;
+    transition: transform 0.2s;
+}
+.card-component { background: linear-gradient(135deg, #131da8 0%, #154db6 100%);
+    border-radius: 30px;
+    padding: 1px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    width: 320px;
+    height: 200px;
+    transition: transform 0.2s;
+}
+.welcome-panel { background: linear-gradient(135deg, #fffde7, #fff9c4); 
+    border-radius: 30px;
+}
+
+/* Birthday Cards */
+.card-component ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.card-component ul li {
+    font-size: 14px;
+    padding: 4px 0;
+    color: #ffffff;
+}
+.card-title {
+    font-size: 40px;
+    font-weight: 1000;
+    margin-top: 20px;
+    margin-left: 30px;
+    color: #ffffff !important; /* Ensure title is always white */
+}
+.card-value {
+    font-size: 35px;
+    font-weight: 800;
+    color: #ffffff;
+    margin-left: 30px;
+    margin-top: 10px;
+    font-style: bold;
+}
+.card-total {
+    font-size: 40px;
+    font-weight: 1000;
+    color: #ffffff;
+    margin-left: 30px;
+    font-style: bold;
+    margin-top: 20px;
+}
+.card-sub {
+    font-size: 16px;
+    color: #ffffff;
+    margin-left: 30px;
+    margin-top: -10px;
+}
+
+/* Population Table */
+table.table {
+    background-color: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.table th {
+    background-color: #f7f7f5;
+    font-size: 14px;
+}
+
+.table td {
+    font-size: 14px;
+}
+
+/* Button Styles */
+.btn-primary, .btn-success {
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+.btn-primary {
+    background-color: #2e7d6f;
+    border-color: #2e7d6f;
+}
+
+.btn-success {
+    background-color: #669966;
+    border-color: #669966;
+}
+
+.table {
+    background: #f0f6ff;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+}
+
+/* Dark Mode Styles */
+body.dark-mode {
+    background: #181a1b !important;
+    color: #e0e0e0 !important;
+}
+body.dark-mode .main-graph-area,
+body.dark-mode .card-component,
+body.dark-mode .dashboard-cards > div,
+body.dark-mode .welcome-panel,
+body.dark-mode .table,
+body.dark-mode .sidebar {
+    background: #232526 !important;
+    color: #e0e0e0 !important;
+    border-color: #333 !important;
+}
+body.dark-mode .table th,
+body.dark-mode .table td {
+    background: #232526 !important;
+    color: #e0e0e0 !important;
+}
+body.dark-mode .btn-primary,
+body.dark-mode .btn-success,
+body.dark-mode .btn-danger {
+    filter: brightness(0.85);
+}
+
+/* Tableau-style dashboard grid for charts */
+.dashboard-charts.tableau-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Responsive columns */
+  grid-auto-rows: minmax(200px, auto); /* Adjustable height */
+  gap: 20px; /* Better spacing between cards */
+  padding: 20px;
+  background-color: #121212;
+}
+
+.card {
+  background-color: #1e1e1e;
+  border-radius: 12px;
+  padding: 20px;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.chart-card {
+    background: #1409b3; /* Dark background similar to the image */
+    border-radius: 10px; /* Adjust border-radius as needed */
+    padding: 10px;
+    gap: 4px; /* Reduced gap for tighter spacing */
+    width: 350px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); /* A more pronounced shadow for a 'floating' effect */
+    display: flex-start;
+    flex-direction: column;
+    align-items: flex-start;
+    min-height: 340px;
+}
+
+.chart-card .graph-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #34495E;
+    align-self: flex-start;
+}
+
+.chart-card .main-graph-area {
+    width: 300px;
+    height: 260px;
+    min-width: 200px;
+    min-height: 200px;
+    max-width: 100%;
+    max-height: 100%;
+    display: flex-start;
+    justify-content: flex-start;
+    align-items: flex-start;
+    background: none;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+    background-color: #ff0000;
+}
+
+.chart-card .main-graph-area canvas {
+    width: 200% !important;
+    height: 100% !important;
+    max-width: 100%;
+    max-height: 100%;
+    background-color: #ffffff;
+}
+
+/* Responsive: stack charts on small screens */
+@media (max-width: 900px) {
+    .dashboard-charts.tableau-layout {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+    .chart-card {
+        min-height: 220px;
+        padding: 12px;
+    }
+    .chart-card .main-graph-area {
+        width: 300px;
+        height: 180px;
+        min-width: 120px;
+        min-height: 120px;
+    }
+}
+
+/* Gender Ratio Circular Progress */
+.circular-progress {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: conic-gradient(
+    #3fa9f5 0% 50%,       /* Default: 50% filled */
+    #f8bbd0 50% 100%      /* Remaining circle (female color) */
+  );
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+.circular-progress::before {
+  content: "";
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background-color: #fff; /* match card background */
+  border-radius: 50%;
+}
+.progress-value {
+  position: absolute;
+  color: #34495E;
+  font-weight: bold;
+  font-size: 1.5rem;
+}
+
+/* Custom styling for the bar chart bars */
+/* This might require manipulating the chart library's options, not just CSS */
+.chart-bar {
+    /* Base color for all bars */
+    background: linear-gradient(to top, #9B59B6, #B484C9); 
+    border-radius: 4px; /* Rounded top for the bars */
+}
+
+/* Specific styling for the selected bar (the one with the tooltip) */
+.chart-bar.selected {
+    background: linear-gradient(to top, #6c7a89, #b4bcc4); /* Gray gradient */
+}
+
+/* Tooltip styling */
+.chart-tooltip {
+    background: #fff;
+    color: #913e3e;
+    border-radius: 5px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* Y-axis labels and grid lines */
+.chart-axis-y-label,
+.chart-grid-line-y {
+    color: #95a5a6; /* Light gray for labels and lines */
+    opacity: 0.7;
+}
+
+/* For a darker, more integrated look, you could add: */
+body.dark-mode .chart-card {
+    background: #0d0c1d;
+    color: #e0e0e0;
+}
