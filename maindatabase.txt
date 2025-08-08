@@ -1,0 +1,32 @@
+in main database
+
+CREATE TABLE pop_data (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    age INT NOT NULL,
+    sex VARCHAR(10) NOT NULL,
+    barangay VARCHAR(50) NOT NULL,
+    address VARCHAR(255) NOT NULL,
+    contact VARCHAR(50) NOT NULL,
+    birthday DATE NOT NULL
+);
+
+for user
+
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'user'
+);
+
+
+events
+
+CREATE TABLE events (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(100) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    start_date DATE NOT NULL,
+    time TIME NOT NULL
+);
