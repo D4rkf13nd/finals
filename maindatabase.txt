@@ -1,3 +1,6 @@
+
+
+
 -- Create the database
 CREATE DATABASE IF NOT EXISTS dashboard_db;
 USE dashboard_db;
@@ -116,3 +119,4 @@ SET GLOBAL event_scheduler = ON;
 -- Create indexes for better performance
 CREATE INDEX idx_search ON pop_data(name, address, barangay);
 CREATE INDEX idx_filters ON pop_data(age, sex, barangay);
+
