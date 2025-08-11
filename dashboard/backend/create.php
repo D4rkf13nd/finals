@@ -1,0 +1,192 @@
+<?php
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "dashboard_db";
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+$name = "";
+$age = "";
+$sex = "";
+$barangay = "";
+$address = "";
+$contact = "";
+$birthday = "";
+
+$errorMessage = "";
+$successMessage = "";
+
+// Barangay options
+$barangayOptions = [
+    "BF Homes", "Don Bosco", "Marcelo Green", "Merville",
+    "Moonwalk", "San Antonio", "San Martin de Porres", "Sun Valley"
+];
+
+// Check if the form is submitted
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $name = $_POST["name"];
+    $age = $_POST["age"];
+    $sex = $_POST["sex"];
+    $barangay = $_POST["barangay"];
+    $address = $_POST["address"];
+    $contact = $_POST["contact"];
+    $birthday = $_POST["birthday"];
+
+    do {
+        if (empty($name) || empty($age) || empty($sex) || empty($barangay) || empty($address) || empty($contact) || empty($birthday)) {
+            $errorMessage = "All fields are required";
+            break;
+        }
+
+        // Use prepared statement for security
+        $stmt = $conn->prepare("INSERT INTO pop_data (name, age, sex, barangay, address, contact, birthday) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("sisssss", $name, $age, $sex, $barangay, $address, $contact, $birthday);
+
+        if (!$stmt->execute()) {
+            $errorMessage = "Invalid query: " . $conn->error;
+            break;
+        }
+
+        $successMessage = "Resident added successfully!";
+        // Clear form fields after success
+        $name = $age = $sex = $barangay = $address = $contact = $birthday = "";
+
+        $stmt->close();
+
+        header("Location: ../main.php");
+        exit;
+
+    } while (false);
+}
+$conn->close();
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css">
+    <style>
+        body {
+           background: rgba(198, 233, 233, 0.418);
+        }
+        .container {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+            padding: 40px 30px 30px 30px;
+            max-width: 650px;
+        }
+        h2 {
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .form-label {
+            font-weight: 500;
+            color: #374151;
+        }
+        .btn-primary {
+            background: #2563eb;
+            border: none;
+        }
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+        .btn-close {
+            outline: none;
+        }
+        .alert {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container my-5">
+    <h2>New Resident</h2>
+
+    <?php if (!empty($errorMessage)): ?>
+        <div class='alert alert-warning alert-dismissible fade show' role='alert'>
+            <strong><?= htmlspecialchars($errorMessage) ?></strong>
+            <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
+        </div>
+    <?php endif; ?>
+
+    <form method="post" class="modal-content">
+        <div class="row mb-3">
+            <label for="name" class="col-sm-2 col-form-label">Name</label>
+            <div class="col-sm-6">
+                <input type="text" class="form-control" name="name" value="<?= htmlspecialchars($name) ?>">
+            </div>
+        </div>
+        <div class="row mb-3">
+            <label for="age" class="col-sm-2 col-form-label">Age</label>
+            <div class="col-sm-6">
+                <input type="number" class="form-control" name="age" value="<?= htmlspecialchars($age) ?>">
+            </div>
+        </div>
+        <div class="row mb-3">
+            <label for="sex" class="col-sm-2 col-form-label">Sex</label>
+            <div class="col-sm-6">
+                <select class="form-select" name="sex">
+                    <option value="male" <?= $sex == "male" ? 'selected' : '' ?>>Male</option>
+                    <option value="female" <?= $sex == "female" ? 'selected' : '' ?>>Female</option>
+                    <option value="other" <?= $sex == "other" ? 'selected' : '' ?>>Other</option>
+                </select>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <label for="barangay" class="col-sm-2 col-form-label">Barangay</label>
+            <div class="col-sm-6">
+                <select class="form-select" name="barangay">
+                    <option value="">Select Barangay</option>
+                    <?php foreach ($barangayOptions as $option): ?>
+                        <option value="<?= htmlspecialchars($option) ?>" <?= $barangay == $option ? 'selected' : '' ?>><?= htmlspecialchars($option) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <label for="address" class="col-sm-2 col-form-label">Address</label>
+            <div class="col-sm-6">
+                <input type="text" class="form-control" name="address" value="<?= htmlspecialchars($address) ?>">
+            </div>
+        </div>
+        <div class="row mb-3">
+            <label for="contact" class="col-sm-2 col-form-label">Contact</label>
+            <div class="col-sm-6">
+                <input type="text" class="form-control" name="contact" value="<?= htmlspecialchars($contact) ?>">
+            </div>
+        </div>
+        <div class="row mb-3">
+            <label for="birthday" class="col-sm-2 col-form-label">Birthday</label>
+            <div class="col-sm-6">
+                <input type="date" class="form-control" name="birthday" value="<?= htmlspecialchars($birthday) ?>">
+            </div>
+        </div>
+
+        <?php if (!empty($successMessage)): ?>
+            <div class='alert alert-success alert-dismissible fade show' role='alert'>
+                <strong><?= htmlspecialchars($successMessage) ?></strong>
+                <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
+            </div>
+        <?php endif; ?>
+
+        <div class="row mb-3">
+            <div class="col-sm-10">
+                <button type="submit" class="btn btn-primary" name="submit">Submit</button>
+            </div>
+            <div>
+                <a class="btn btn-primary" href="/dashboard/main.php" role="button">Cancel</a>
+            </div>
+        </div>
+    </form>
+</div>
+</body>
+</html>
