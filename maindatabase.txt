@@ -1,4 +1,16 @@
-
+CREATE TABLE IF NOT EXISTS user_settings (
+    user_id INT PRIMARY KEY,
+    profile_picture VARCHAR(255),
+    name VARCHAR(100),
+    email VARCHAR(100),
+    contact VARCHAR(20),
+    theme VARCHAR(10) DEFAULT 'light',
+    refresh_interval VARCHAR(20) DEFAULT 'real-time',
+    timezone VARCHAR(50) DEFAULT 'Asia/Manila',
+    two_fa_enabled BOOLEAN DEFAULT FALSE,
+    last_password_change TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
 
 
 -- Create the database
@@ -119,4 +131,5 @@ SET GLOBAL event_scheduler = ON;
 -- Create indexes for better performance
 CREATE INDEX idx_search ON pop_data(name, address, barangay);
 CREATE INDEX idx_filters ON pop_data(age, sex, barangay);
+
 
