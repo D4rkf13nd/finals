@@ -1,32 +1,118 @@
-in main database
+-- Create the database
+CREATE DATABASE IF NOT EXISTS dashboard_db;
+USE dashboard_db;
 
-CREATE TABLE pop_data (
+-- Create population data table
+CREATE TABLE IF NOT EXISTS pop_data (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     age INT NOT NULL,
-    sex VARCHAR(10) NOT NULL,
+    sex ENUM('Male', 'Female', 'Other') NOT NULL,
     barangay VARCHAR(50) NOT NULL,
     address VARCHAR(255) NOT NULL,
-    contact VARCHAR(50) NOT NULL,
-    birthday DATE NOT NULL
-);
+    contact VARCHAR(20) NULL,
+    birthday DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
+    INDEX idx_name (name),
+    INDEX idx_age (age),
+    INDEX idx_barangay (barangay),
+    INDEX idx_sex (sex),
+    INDEX idx_deleted_at (deleted_at),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-for user
-
-CREATE TABLE users (
+-- Create users table for authentication
+CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role VARCHAR(20) NOT NULL DEFAULT 'user'
-);
+    role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
+    last_login TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_username (username),
+    INDEX idx_role (role)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
-events
-
-CREATE TABLE events (
+-- Create activity logs table
+CREATE TABLE IF NOT EXISTS activity_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    title VARCHAR(100) NOT NULL,
-    type VARCHAR(50) NOT NULL,
-    start_date DATE NOT NULL,
-    time TIME NOT NULL
-);
+    user_id INT NOT NULL,
+    action VARCHAR(50) NOT NULL,
+    details TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user_id (user_id),
+    INDEX idx_action (action),
+    INDEX idx_created_at (created_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create barangay_stats table for caching
+CREATE TABLE IF NOT EXISTS barangay_stats (
+    barangay VARCHAR(50) PRIMARY KEY,
+    total_population INT NOT NULL DEFAULT 0,
+    age_0_18 INT NOT NULL DEFAULT 0,
+    age_19_30 INT NOT NULL DEFAULT 0,
+    age_31_50 INT NOT NULL DEFAULT 0,
+    age_51_plus INT NOT NULL DEFAULT 0,
+    male_count INT NOT NULL DEFAULT 0,
+    female_count INT NOT NULL DEFAULT 0,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_last_updated (last_updated)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create stored procedure for updating statistics
+DELIMITER //
+CREATE PROCEDURE update_stats()
+BEGIN
+    -- Update barangay statistics
+    INSERT INTO barangay_stats (
+        barangay, 
+        total_population,
+        age_0_18,
+        age_19_30,
+        age_31_50,
+        age_51_plus,
+        male_count,
+        female_count
+    )
+    SELECT 
+        barangay,
+        COUNT(*) as total_population,
+        SUM(CASE WHEN age BETWEEN 0 AND 18 THEN 1 ELSE 0 END) as age_0_18,
+        SUM(CASE WHEN age BETWEEN 19 AND 30 THEN 1 ELSE 0 END) as age_19_30,
+        SUM(CASE WHEN age BETWEEN 31 AND 50 THEN 1 ELSE 0 END) as age_31_50,
+        SUM(CASE WHEN age >= 51 THEN 1 ELSE 0 END) as age_51_plus,
+        SUM(CASE WHEN sex = 'Male' THEN 1 ELSE 0 END) as male_count,
+        SUM(CASE WHEN sex = 'Female' THEN 1 ELSE 0 END) as female_count
+    FROM pop_data
+    WHERE deleted_at IS NULL
+    GROUP BY barangay
+    ON DUPLICATE KEY UPDATE
+        total_population = VALUES(total_population),
+        age_0_18 = VALUES(age_0_18),
+        age_19_30 = VALUES(age_19_30),
+        age_31_50 = VALUES(age_31_50),
+        age_51_plus = VALUES(age_51_plus),
+        male_count = VALUES(male_count),
+        female_count = VALUES(female_count);
+END //
+DELIMITER ;
+
+-- Create event to automatically update stats
+CREATE EVENT IF NOT EXISTS hourly_stats_update
+ON SCHEDULE EVERY 1 HOUR
+DO CALL update_stats();
+
+-- Create default admin user (password: admin123)
+INSERT INTO users (username, password, role) 
+VALUES ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin')
+ON DUPLICATE KEY UPDATE id=id;
+
+-- Enable event scheduler
+SET GLOBAL event_scheduler = ON;
+
+-- Create indexes for better performance
+CREATE INDEX idx_search ON pop_data(name, address, barangay);
+CREATE INDEX idx_filters ON pop_data(age, sex, barangay);
