@@ -1,3 +1,20 @@
+-- Create the database
+CREATE DATABASE IF NOT EXISTS dashboard_db;
+USE dashboard_db;
+
+-- Create users table for authentication (must be before user_settings because of FK)
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
+    last_login TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_username (username),
+    INDEX idx_role (role)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create user_settings table
 CREATE TABLE IF NOT EXISTS user_settings (
     user_id INT PRIMARY KEY,
     profile_picture VARCHAR(255),
@@ -9,13 +26,8 @@ CREATE TABLE IF NOT EXISTS user_settings (
     timezone VARCHAR(50) DEFAULT 'Asia/Manila',
     two_fa_enabled BOOLEAN DEFAULT FALSE,
     last_password_change TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
-
-
--- Create the database
-CREATE DATABASE IF NOT EXISTS dashboard_db;
-USE dashboard_db;
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create population data table
 CREATE TABLE IF NOT EXISTS pop_data (
@@ -36,18 +48,6 @@ CREATE TABLE IF NOT EXISTS pop_data (
     INDEX idx_sex (sex),
     INDEX idx_deleted_at (deleted_at),
     INDEX idx_created_at (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Create users table for authentication
-CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
-    last_login TIMESTAMP NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_username (username),
-    INDEX idx_role (role)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create activity logs table
@@ -81,7 +81,6 @@ CREATE TABLE IF NOT EXISTS barangay_stats (
 DELIMITER //
 CREATE PROCEDURE update_stats()
 BEGIN
-    -- Update barangay statistics
     INSERT INTO barangay_stats (
         barangay, 
         total_population,
@@ -120,7 +119,7 @@ CREATE EVENT IF NOT EXISTS hourly_stats_update
 ON SCHEDULE EVERY 1 HOUR
 DO CALL update_stats();
 
--- Create default admin user (password: admin123)
+-- Create default admin user
 INSERT INTO users (username, password, role) 
 VALUES ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin')
 ON DUPLICATE KEY UPDATE id=id;
@@ -128,8 +127,6 @@ ON DUPLICATE KEY UPDATE id=id;
 -- Enable event scheduler
 SET GLOBAL event_scheduler = ON;
 
--- Create indexes for better performance
+-- Additional indexes for performance
 CREATE INDEX idx_search ON pop_data(name, address, barangay);
 CREATE INDEX idx_filters ON pop_data(age, sex, barangay);
-
-
