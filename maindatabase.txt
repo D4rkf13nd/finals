@@ -2,131 +2,72 @@
 CREATE DATABASE IF NOT EXISTS dashboard_db;
 USE dashboard_db;
 
--- Create users table for authentication (must be before user_settings because of FK)
-CREATE TABLE IF NOT EXISTS users (
+-- Users table
+CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
-    last_login TIMESTAMP NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_username (username),
-    INDEX idx_role (role)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Create user_settings table
-CREATE TABLE IF NOT EXISTS user_settings (
-    user_id INT PRIMARY KEY,
-    profile_picture VARCHAR(255),
-    name VARCHAR(100),
-    email VARCHAR(100),
     contact VARCHAR(20),
-    theme VARCHAR(10) DEFAULT 'light',
-    refresh_interval VARCHAR(20) DEFAULT 'real-time',
-    timezone VARCHAR(50) DEFAULT 'Asia/Manila',
-    two_fa_enabled BOOLEAN DEFAULT FALSE,
-    last_password_change TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    profile_picture VARCHAR(255),
+    role ENUM('admin', 'user') DEFAULT 'user',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
--- Create population data table
-CREATE TABLE IF NOT EXISTS pop_data (
+-- Population data table
+CREATE TABLE pop_data (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     age INT NOT NULL,
-    sex ENUM('Male', 'Female', 'Other') NOT NULL,
+    sex ENUM('male', 'female', 'lgbtq') NOT NULL,
     barangay VARCHAR(50) NOT NULL,
     address VARCHAR(255) NOT NULL,
-    contact VARCHAR(20) NULL,
+    contact VARCHAR(20) NOT NULL,
     birthday DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at DATETIME NULL,
-    INDEX idx_name (name),
-    INDEX idx_age (age),
-    INDEX idx_barangay (barangay),
-    INDEX idx_sex (sex),
-    INDEX idx_deleted_at (deleted_at),
-    INDEX idx_created_at (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 
--- Create activity logs table
-CREATE TABLE IF NOT EXISTS activity_logs (
+-- Events table
+CREATE TABLE events (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    start_date DATE NOT NULL,
+    end_date DATE,
+    time TIME,
+    type VARCHAR(50),
+    user_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Settings table
+CREATE TABLE settings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    action VARCHAR(50) NOT NULL,
-    details TEXT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    INDEX idx_action (action),
-    INDEX idx_created_at (created_at),
+    theme VARCHAR(20) DEFAULT 'light',
+    refresh_interval INT DEFAULT 30,
+    timezone VARCHAR(50) DEFAULT 'UTC',
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
--- Create barangay_stats table for caching
-CREATE TABLE IF NOT EXISTS barangay_stats (
-    barangay VARCHAR(50) PRIMARY KEY,
-    total_population INT NOT NULL DEFAULT 0,
-    age_0_18 INT NOT NULL DEFAULT 0,
-    age_19_30 INT NOT NULL DEFAULT 0,
-    age_31_50 INT NOT NULL DEFAULT 0,
-    age_51_plus INT NOT NULL DEFAULT 0,
-    male_count INT NOT NULL DEFAULT 0,
-    female_count INT NOT NULL DEFAULT 0,
-    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_last_updated (last_updated)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Insert default admin user
+INSERT INTO users (name, email, password, role) VALUES 
+('Admin', 'admin@example.com', '$2y$10$YourHashedPasswordHere', 'admin');
 
--- Create stored procedure for updating statistics
-DELIMITER //
-CREATE PROCEDURE update_stats()
-BEGIN
-    INSERT INTO barangay_stats (
-        barangay, 
-        total_population,
-        age_0_18,
-        age_19_30,
-        age_31_50,
-        age_51_plus,
-        male_count,
-        female_count
-    )
-    SELECT 
-        barangay,
-        COUNT(*) as total_population,
-        SUM(CASE WHEN age BETWEEN 0 AND 18 THEN 1 ELSE 0 END) as age_0_18,
-        SUM(CASE WHEN age BETWEEN 19 AND 30 THEN 1 ELSE 0 END) as age_19_30,
-        SUM(CASE WHEN age BETWEEN 31 AND 50 THEN 1 ELSE 0 END) as age_31_50,
-        SUM(CASE WHEN age >= 51 THEN 1 ELSE 0 END) as age_51_plus,
-        SUM(CASE WHEN sex = 'Male' THEN 1 ELSE 0 END) as male_count,
-        SUM(CASE WHEN sex = 'Female' THEN 1 ELSE 0 END) as female_count
-    FROM pop_data
-    WHERE deleted_at IS NULL
-    GROUP BY barangay
-    ON DUPLICATE KEY UPDATE
-        total_population = VALUES(total_population),
-        age_0_18 = VALUES(age_0_18),
-        age_19_30 = VALUES(age_19_30),
-        age_31_50 = VALUES(age_31_50),
-        age_51_plus = VALUES(age_51_plus),
-        male_count = VALUES(male_count),
-        female_count = VALUES(female_count);
-END //
-DELIMITER ;
+-- Sample barangay data
+INSERT INTO pop_data (name, age, sex, barangay, address, contact, birthday) VALUES 
+('John Doe', 25, 'male', 'Barangay 1', '123 Main St', '09123456789', '1998-05-15'),
+('Jane Smith', 30, 'female', 'Barangay 2', '456 Park Ave', '09187654321', '1993-08-22'),
+('Alex Rivera', 28, 'lgbtq', 'Barangay 3', '789 Rainbow St', '09456123789', '1995-12-10');
 
--- Create event to automatically update stats
-CREATE EVENT IF NOT EXISTS hourly_stats_update
-ON SCHEDULE EVERY 1 HOUR
-DO CALL update_stats();
+-- Sample events
+INSERT INTO events (title, description, start_date, type, user_id) VALUES 
+('Community Meeting', 'Monthly community gathering', '2025-08-15', 'meeting', 1),
+('Health Program', 'Free medical checkup', '2025-08-20', 'health', 1);
 
--- Create default admin user
-INSERT INTO users (username, password, role) 
-VALUES ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin')
-ON DUPLICATE KEY UPDATE id=id;
-
--- Enable event scheduler
-SET GLOBAL event_scheduler = ON;
-
--- Additional indexes for performance
-CREATE INDEX idx_search ON pop_data(name, address, barangay);
-CREATE INDEX idx_filters ON pop_data(age, sex, barangay);
+-- Create indexes for better performance
+CREATE INDEX idx_pop_data_barangay ON pop_data(barangay);
+CREATE INDEX idx_pop_data_sex ON pop_data(sex);
+CREATE INDEX idx_events_date ON events(start_date);
