@@ -1,128 +1,132 @@
--- Create Database
+-- Create the database
 CREATE DATABASE IF NOT EXISTS dashboard_db;
 USE dashboard_db;
 
--- Create Users Table
-CREATE TABLE users (
-    user_id INT PRIMARY KEY AUTO_INCREMENT,
-    username VARCHAR(50) UNIQUE NOT NULL,
+-- Create users table for authentication (must be before user_settings because of FK)
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'user') DEFAULT 'user',
+    role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
+    last_login TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_username (username),
     INDEX idx_role (role)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Create Population Data Table
-CREATE TABLE pop_data (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+-- Create user_settings table
+CREATE TABLE IF NOT EXISTS user_settings (
+    user_id INT PRIMARY KEY,
+    profile_picture VARCHAR(255),
+    name VARCHAR(100),
+    email VARCHAR(100),
+    contact VARCHAR(20),
+    theme VARCHAR(10) DEFAULT 'light',
+    refresh_interval VARCHAR(20) DEFAULT 'real-time',
+    timezone VARCHAR(50) DEFAULT 'Asia/Manila',
+    two_fa_enabled BOOLEAN DEFAULT FALSE,
+    last_password_change TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create population data table
+CREATE TABLE IF NOT EXISTS pop_data (
+    id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     age INT NOT NULL,
-    sex ENUM('Male', 'Female', 'LGBTQ') NOT NULL,
+    sex ENUM('Male', 'Female', 'Other') NOT NULL,
     barangay VARCHAR(50) NOT NULL,
     address VARCHAR(255) NOT NULL,
-    contact VARCHAR(20),
+    contact VARCHAR(20) NULL,
     birthday DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    -- Indexes for frequently accessed columns
+    deleted_at DATETIME NULL,
     INDEX idx_name (name),
     INDEX idx_age (age),
-    INDEX idx_sex (sex),
     INDEX idx_barangay (barangay),
-    INDEX idx_birthday (birthday),
-    -- Composite indexes for common searches
-    INDEX idx_name_age (name, age),
-    INDEX idx_barangay_age (barangay, age),
-    INDEX idx_generation_search (birthday, age, barangay)
-);
+    INDEX idx_sex (sex),
+    INDEX idx_deleted_at (deleted_at),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Insert Default Admin User
-INSERT INTO users (username, password, role) VALUES 
-('admin', '$2y$10$YourHashedPasswordHere', 'admin');
+-- Create activity logs table
+CREATE TABLE IF NOT EXISTS activity_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    action VARCHAR(50) NOT NULL,
+    details TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user_id (user_id),
+    INDEX idx_action (action),
+    INDEX idx_created_at (created_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Generation Query
-CREATE VIEW generation_stats AS
-SELECT 
-    CASE 
-        WHEN YEAR(birthday) BETWEEN 1997 AND 2012 THEN 'Gen_Z'
-        WHEN YEAR(birthday) BETWEEN 1981 AND 1996 THEN 'Millennials'
-        WHEN YEAR(birthday) BETWEEN 1965 AND 1980 THEN 'Gen_X'
-        WHEN YEAR(birthday) BETWEEN 1946 AND 1964 THEN 'Boomers'
-        WHEN YEAR(birthday) BETWEEN 1928 AND 1945 THEN 'Silent'
-    END as generation,
-    COUNT(*) as count
-FROM pop_data
-WHERE birthday IS NOT NULL
-GROUP BY generation;
+-- Create barangay_stats table for caching
+CREATE TABLE IF NOT EXISTS barangay_stats (
+    barangay VARCHAR(50) PRIMARY KEY,
+    total_population INT NOT NULL DEFAULT 0,
+    age_0_18 INT NOT NULL DEFAULT 0,
+    age_19_30 INT NOT NULL DEFAULT 0,
+    age_31_50 INT NOT NULL DEFAULT 0,
+    age_51_plus INT NOT NULL DEFAULT 0,
+    male_count INT NOT NULL DEFAULT 0,
+    female_count INT NOT NULL DEFAULT 0,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_last_updated (last_updated)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Age Group Query
-CREATE VIEW age_group_stats AS
-SELECT 
-    CASE 
-        WHEN age BETWEEN 18 AND 30 THEN '18-30'
-        WHEN age BETWEEN 31 AND 50 THEN '31-50'
-        WHEN age BETWEEN 51 AND 60 THEN '51-60'
-    END as age_group,
-    COUNT(*) as count
-FROM pop_data
-GROUP BY age_group;
-
--- Gender Distribution Query
-CREATE VIEW gender_stats AS
-SELECT sex, COUNT(*) as count
-FROM pop_data
-GROUP BY sex;
-
--- Barangay Distribution Query
-CREATE VIEW barangay_stats AS
-SELECT barangay, COUNT(*) as count
-FROM pop_data
-GROUP BY barangay;
-
--- Search Query with Index Usage
-EXPLAIN SELECT * FROM pop_data 
-WHERE name LIKE ? 
-   OR address LIKE ? 
-   OR barangay LIKE ?
-ORDER BY name;
-
--- Birthday Statistics Query
-CREATE VIEW birthday_stats AS
-SELECT 
-    COUNT(CASE WHEN DATE_FORMAT(birthday, '%m-%d') = DATE_FORMAT(CURDATE(), '%m-%d') THEN 1 END) as today_birthdays,
-    COUNT(CASE WHEN MONTH(birthday) = MONTH(CURDATE()) THEN 1 END) as month_birthdays
-FROM pop_data;
-
--- Stored Procedure for Age Updates
+-- Create stored procedure for updating statistics
 DELIMITER //
-CREATE PROCEDURE update_ages()
+CREATE PROCEDURE update_stats()
 BEGIN
-    UPDATE pop_data 
-    SET age = TIMESTAMPDIFF(YEAR, birthday, CURDATE());
+    INSERT INTO barangay_stats (
+        barangay, 
+        total_population,
+        age_0_18,
+        age_19_30,
+        age_31_50,
+        age_51_plus,
+        male_count,
+        female_count
+    )
+    SELECT 
+        barangay,
+        COUNT(*) as total_population,
+        SUM(CASE WHEN age BETWEEN 0 AND 18 THEN 1 ELSE 0 END) as age_0_18,
+        SUM(CASE WHEN age BETWEEN 19 AND 30 THEN 1 ELSE 0 END) as age_19_30,
+        SUM(CASE WHEN age BETWEEN 31 AND 50 THEN 1 ELSE 0 END) as age_31_50,
+        SUM(CASE WHEN age >= 51 THEN 1 ELSE 0 END) as age_51_plus,
+        SUM(CASE WHEN sex = 'Male' THEN 1 ELSE 0 END) as male_count,
+        SUM(CASE WHEN sex = 'Female' THEN 1 ELSE 0 END) as female_count
+    FROM pop_data
+    WHERE deleted_at IS NULL
+    GROUP BY barangay
+    ON DUPLICATE KEY UPDATE
+        total_population = VALUES(total_population),
+        age_0_18 = VALUES(age_0_18),
+        age_19_30 = VALUES(age_19_30),
+        age_31_50 = VALUES(age_31_50),
+        age_51_plus = VALUES(age_51_plus),
+        male_count = VALUES(male_count),
+        female_count = VALUES(female_count);
 END //
 DELIMITER ;
 
--- Event for Automatic Age Updates
-CREATE EVENT update_ages_event
-ON SCHEDULE EVERY 1 DAY
-DO CALL update_ages();
+-- Create event to automatically update stats
+CREATE EVENT IF NOT EXISTS hourly_stats_update
+ON SCHEDULE EVERY 1 HOUR
+DO CALL update_stats();
 
--- Triggers
-DELIMITER //
-CREATE TRIGGER before_insert_pop_data
-BEFORE INSERT ON pop_data
-FOR EACH ROW
-BEGIN
-    SET NEW.age = TIMESTAMPDIFF(YEAR, NEW.birthday, CURDATE());
-END //
+-- Create default admin user
+INSERT INTO users (username, password, role) 
+VALUES ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin')
+ON DUPLICATE KEY UPDATE id=id;
 
-CREATE TRIGGER before_update_pop_data
-BEFORE UPDATE ON pop_data
-FOR EACH ROW
-BEGIN
-    IF NEW.birthday != OLD.birthday THEN
-        SET NEW.age = TIMESTAMPDIFF(YEAR, NEW.birthday, CURDATE());
-    END IF;
-END //
-DELIMITER ;
+-- Enable event scheduler
+SET GLOBAL event_scheduler = ON;
+
+-- Additional indexes for performance
+CREATE INDEX idx_search ON pop_data(name, address, barangay);
+CREATE INDEX idx_filters ON pop_data(age, sex, barangay);
