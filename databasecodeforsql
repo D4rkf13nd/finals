@@ -2,16 +2,6 @@
 CREATE DATABASE IF NOT EXISTS dashboard_db;
 USE dashboard_db;
 
--- Create users table for authentication (must be before user_settings because of FK)
-CREATE TABLE users (
-    user_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'user') DEFAULT 'user',
-    last_login TIMESTAMP NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 -- Create user_settings table
 CREATE TABLE IF NOT EXISTS user_settings (
     user_id INT PRIMARY KEY,
@@ -128,4 +118,5 @@ SET GLOBAL event_scheduler = ON;
 -- Additional indexes for performance
 CREATE INDEX idx_search ON pop_data(name, address, barangay);
 CREATE INDEX idx_filters ON pop_data(age, sex, barangay);
+
 
