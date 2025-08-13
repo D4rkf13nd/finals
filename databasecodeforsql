@@ -2,9 +2,19 @@
 CREATE DATABASE IF NOT EXISTS dashboard_db;
 USE dashboard_db;
 
+-- Create users table first
+CREATE TABLE IF NOT EXISTS users (
+    user_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'user') DEFAULT 'user',
+    last_login TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Create user_settings table
 CREATE TABLE IF NOT EXISTS user_settings (
-    user_id INT PRIMARY KEY,
+    user_id INT UNSIGNED PRIMARY KEY,
     profile_picture VARCHAR(255),
     name VARCHAR(100),
     email VARCHAR(100),
@@ -14,7 +24,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
     timezone VARCHAR(50) DEFAULT 'Asia/Manila',
     two_fa_enabled BOOLEAN DEFAULT FALSE,
     last_password_change TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create population data table
@@ -41,14 +51,14 @@ CREATE TABLE IF NOT EXISTS pop_data (
 -- Create activity logs table
 CREATE TABLE IF NOT EXISTS activity_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    user_id INT UNSIGNED NOT NULL,
     action VARCHAR(50) NOT NULL,
     details TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_user_id (user_id),
     INDEX idx_action (action),
     INDEX idx_created_at (created_at),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create barangay_stats table for caching
@@ -107,10 +117,10 @@ CREATE EVENT IF NOT EXISTS hourly_stats_update
 ON SCHEDULE EVERY 1 HOUR
 DO CALL update_stats();
 
--- Create default admin user
+-- Create default admin user (bcrypt password hash)
 INSERT INTO users (username, password, role) 
 VALUES ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin')
-ON DUPLICATE KEY UPDATE id=id;
+ON DUPLICATE KEY UPDATE user_id = user_id;
 
 -- Enable event scheduler
 SET GLOBAL event_scheduler = ON;
@@ -130,6 +140,7 @@ CREATE TABLE users (
     last_login TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 
 
 
