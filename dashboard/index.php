@@ -2,33 +2,71 @@
 session_start();
 require_once "backend/db.php";
 
+// If already logged in, redirect to appropriate page
+if (isset($_SESSION["user_id"])) {
+    if ($_SESSION["role"] === "admin") {
+        header("Location: main.php");
+    } else {
+        header("Location: user.php");
+    }
+    exit;
+}
+
 $error = "";
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = trim($_POST["username"]);
     $password = $_POST["password"];
-    $stmt = $conn->prepare("SELECT * FROM users WHERE username=?");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $user = $res->fetch_assoc();
-    if ($user && password_verify($password, $user["password"])) {
-        $_SESSION["user_id"] = $user["id"];
-        $_SESSION["username"] = $user["username"];
-        $_SESSION["role"] = $user["role"];
-        if ($user["role"] == "admin") {
-            header("Location: main.php");
-        } else {
-            header("Location: user.php");
+    
+    try {
+        // Select specific columns instead of *
+        $stmt = $conn->prepare("SELECT user_id, username, password, role FROM users WHERE username = ?");
+        if (!$stmt) {
+            throw new Exception("Database error: " . $conn->error);
         }
-        exit;
-    } else {
-        $error = "Invalid username or password.";
+
+        $stmt->bind_param("s", $username);
+        if (!$stmt->execute()) {
+            throw new Exception("Execute failed: " . $stmt->error);
+        }
+
+        $result = $stmt->get_result();
+        $user = $result->fetch_assoc();
+
+        if ($user && password_verify($password, $user["password"])) {
+            // Set session variables using correct column names
+            $_SESSION["user_id"] = $user["user_id"];
+            $_SESSION["username"] = $user["username"];
+            $_SESSION["role"] = $user["role"];
+
+            // Update last login timestamp with error checking
+            $update = $conn->prepare("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE user_id = ?");
+            if ($update === false) {
+                throw new Exception("Update prepare failed: " . $conn->error);
+            }
+
+            if (!$update->bind_param("i", $user["user_id"])) {
+                throw new Exception("Update binding failed: " . $update->error);
+            }
+
+            if (!$update->execute()) {
+                throw new Exception("Update failed: " . $update->error);
+            }
+            $update->close();
+
+            // Redirect based on role
+            header("Location: " . ($user["role"] === "admin" ? "main.php" : "user.php"));
+            exit;
+        } else {
+            $error = "Invalid username or password.";
+        }
+    } catch (Exception $e) {
+        $error = "An error occurred. Please try again.";
+        error_log("Login error: " . $e->getMessage());
+    } finally {
+        if (isset($stmt)) {
+            $stmt->close();
+        }
     }
-    $stmt->close();
-}
-if (isset($_SESSION["user_id"])) {
-    header("Location: main.php");
-    exit;
 }
 ?>
 <!DOCTYPE html>
