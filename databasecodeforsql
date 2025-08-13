@@ -120,6 +120,8 @@ CREATE INDEX idx_search ON pop_data(name, address, barangay);
 CREATE INDEX idx_filters ON pop_data(age, sex, barangay);
 
 _____________________________________________________________________
+if ayaw gumana ng login panel:
+
 CREATE TABLE users (
     user_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
@@ -128,6 +130,7 @@ CREATE TABLE users (
     last_login TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 
 
 
