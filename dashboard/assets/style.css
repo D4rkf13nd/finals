@@ -1,0 +1,218 @@
+/* Variables */
+:root {
+    --primary-color: #050aff;
+    --secondary-color: #ffffff;
+    --text-color: #333333;
+    --border-color: rgba(0, 0, 0, 0.1);
+    --hover-color: rgba(25, 118, 210, 0.05);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --border-radius: 15px;
+    --spacing-sm: 10px;
+    --spacing-md: 20px;
+    --spacing-lg: 30px;
+}
+
+/* Base Styles */
+body {
+    background: #f8f9fa;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* Layout */
+.main-content {
+    margin-left: 250px;
+    padding: var(--spacing-lg);
+}
+
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 250px;
+    padding: var(--spacing-md);
+    background: var(--secondary-color);
+    box-shadow: var(--shadow-md);
+    z-index: 1000;
+}
+
+/* Navigation */
+.sidebar .nav-link {
+    padding: 12px var(--spacing-md);
+    color: var(--text-color);
+    border-radius: 8px;
+    margin-bottom: var(--spacing-sm);
+    transition: all 0.3s ease;
+}
+
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active {
+    background: var(--primary-color);
+    color: var(--secondary-color);
+}
+
+/* Cards */
+.counter-total,
+.counter-18,
+.counter-31,
+.counter-51,
+.generation-item {
+    background: var(--secondary-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-md);
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Generation Section */
+.generation-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    width: 100%;
+    margin: 0;
+}
+
+.generation-item {
+    flex: 1 1 calc(20% - 1rem); /* 20% for 5 equal items */
+    min-height: 160px;
+    padding: 1.25rem 1rem;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.generation-item:hover {
+    transform: translateY(-5px);
+}
+
+.generation-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0.5rem 0;
+}
+
+/* Typography */
+.generation-z { color: #4361ee; }
+.generation-millennials { color: #3a0ca3; }
+.generation-x { color: #7209b7; }
+.generation-baby { color: #f72585; }
+.generation-silent { color: #4cc9f0; }
+
+/* Table Styles */
+.table-responsive {
+    width: 100%;
+    max-height: 500px;
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-color) #f1f1f1;
+}
+
+.table {
+    margin: 0;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--secondary-color);
+    z-index: 2;
+    padding: 15px;
+    font-weight: 600;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.table tbody td {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table tbody tr:hover {
+    background-color: var(--hover-color);
+    cursor: pointer;
+}
+
+/* Buttons */
+.btn-info {
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-info:hover {
+    background-color: #138496;
+    transform: translateY(-1px);
+}
+
+/* Media Queries */
+@media (max-width: 1200px) {
+    .generation-container {
+        flex-wrap: nowrap;
+    }
+    
+    .generation-item {
+        flex: 1 1 calc(20% - 1rem);
+    }
+}
+
+@media (max-width: 991px) {
+    .main-content {
+        margin-left: 0;
+        padding: var(--spacing-md);
+    }
+    
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+    
+    .sidebar.show {
+        transform: translateX(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .generation-container {
+        flex-wrap: wrap;
+    }
+
+    .generation-item {
+        flex: 1 1 calc(50% - 0.5rem);
+    }
+}
+
+@media (max-width: 576px) {
+    .generation-item {
+        flex: 1 1 100%;
+    }
+}
+
+/* Dark mode support */
+.darkmode .generation-item {
+    background: #232323;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.darkmode .text-muted {
+    color: #aaa !important;
+}
+
+/* Remove any overflow properties */
+.card-body {
+    overflow: visible;
+}
