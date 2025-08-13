@@ -1,130 +1,161 @@
 <?php
 session_start();
 require_once "db.php";
+
+// Initialize messages
 $successMessage = "";
 $errorMessage = "";
+
+// Function to validate date format
+function validateDate($date, $format = 'Y-m-d') {
+    $d = DateTime::createFromFormat($format, $date);
+    return $d && $d->format($format) === $date;
+}
+
+// Function to validate data row
+function validateRow($data) {
+    if (count($data) !== 7) {
+        throw new Exception("Invalid number of columns");
+    }
+    
+    // Validate name
+    if (empty(trim($data[0]))) {
+        throw new Exception("Name cannot be empty");
+    }
+    
+    // Validate age
+    if (!is_numeric($data[1]) || $data[1] < 0 || $data[1] > 120) {
+        throw new Exception("Invalid age value");
+    }
+    
+    // Validate sex
+    if (!in_array($data[2], ['Male', 'Female', 'LGBTQ'])) {
+        throw new Exception("Invalid sex value");
+    }
+    
+    // Validate barangay
+    if (empty(trim($data[3]))) {
+        throw new Exception("Barangay cannot be empty");
+    }
+    
+    // Validate birthday
+    if (!validateDate($data[6])) {
+        throw new Exception("Invalid date format for birthday");
+    }
+    
+    return true;
+}
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["import_file"])) {
     $fileName = $_FILES["import_file"]["name"];
     $fileTmp = $_FILES["import_file"]["tmp_name"];
     $fileType = pathinfo($fileName, PATHINFO_EXTENSION);
-
-    if ($fileType == "csv") {
-        // Handle CSV import
-        $handle = fopen($fileTmp, "r");
-        $row = 0;
-        while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
-            if ($row == 0) { $row++; continue; } // skip header
-            // [name, age, sex, barangay, address, contact, birthday]
-            $stmt = $conn->prepare("INSERT INTO pop_data (name, age, sex, barangay, address, contact, birthday) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("sisssss", $data[0], $data[1], $data[2], $data[3], $data[4], $data[5], $data[6]);
-            $stmt->execute();
-            $stmt->close();
-            $row++;
-        }
-        fclose($handle);
-        $successMessage = "CSV imported successfully!";
-    } else {
-        $errorMessage = "Only CSV files are supported in this demo.";
-    }
-} elseif (isset($_POST['import'])) {
-    $response = ['success' => false, 'message' => ''];
     
-    if ($_FILES['import_file']['error'] == 0) {
-        $fileName = $_FILES['import_file']['tmp_name'];
-        
-        if (($handle = fopen($fileName, "r")) !== FALSE) {
-            // Skip header row
-            fgetcsv($handle);
+    if ($fileType != "csv") {
+        $errorMessage = "Only CSV files are allowed.";
+    } else {
+        try {
+            $conn->begin_transaction();
+            
+            if (!$handle = fopen($fileTmp, "r")) {
+                throw new Exception("Failed to open file");
+            }
+            
+            $row = 0;
+            $successRows = 0;
+            
+            // Prepare statement
+            $stmt = $conn->prepare("INSERT INTO pop_data (name, age, sex, barangay, address, contact, birthday) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            
+            if (!$stmt) {
+                throw new Exception("Failed to prepare statement: " . $conn->error);
+            }
             
             while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
-                $stmt = $conn->prepare("INSERT INTO pop_data (name, age, sex, barangay, address, contact, birthday) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("sisssss", $data[0], $data[1], $data[2], $data[3], $data[4], $data[5], $data[6]);
-                $stmt->execute();
+                $row++;
+                
+                // Skip header row
+                if ($row === 1) continue;
+                
+                try {
+                    // Validate row data
+                    validateRow($data);
+                    
+                    // Assign trimmed values to variables
+                    $name = trim($data[0]);
+                    $age = $data[1];
+                    $sex = $data[2];
+                    $barangay = trim($data[3]);
+                    $address = trim($data[4]);
+                    $contact = trim($data[5]);
+                    $birthday = $data[6];
+
+                    // Bind and execute
+                    if (!$stmt->bind_param("sisssss", 
+                        $name,      // name
+                        $age,       // age
+                        $sex,       // sex
+                        $barangay,  // barangay
+                        $address,   // address
+                        $contact,   // contact
+                        $birthday   // birthday
+                    )) {
+                        throw new Exception("Failed to bind parameters at row $row");
+                    }
+                    
+                    if (!$stmt->execute()) {
+                        throw new Exception("Failed to insert row $row: " . $stmt->error);
+                    }
+                    
+                    $successRows++;
+                    
+                } catch (Exception $e) {
+                    error_log("Error at row $row: " . $e->getMessage());
+                    continue;
+                }
             }
             
             fclose($handle);
-            $response['success'] = true;
-            $response['message'] = "Data imported successfully!";
+            $stmt->close();
+            $conn->commit();
+            
+            $successMessage = "Import completed successfully! Imported $successRows rows.";
+            
+        } catch (Exception $e) {
+            if (isset($conn)) {
+                $conn->rollback();
+            }
+            $errorMessage = "Import failed: " . $e->getMessage();
+            error_log("Import error: " . $e->getMessage());
         }
-    } else {
-        $response['message'] = "Error uploading file.";
     }
-    
-    // Redirect back to user.php with status
-    $_SESSION['import_status'] = $response;
-    header("Location: ../user.php");
-    exit;
 }
 ?>
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Import Residents</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-            background: #f8fafc;
-        }
+        body { background: #f8fafc; }
         .container {
             background: #fff;
             border-radius: 12px;
             box-shadow: 0 2px 16px rgba(0,0,0,0.07);
-            padding: 40px 30px 30px 30px;
+            padding: 40px 30px;
             max-width: 600px;
-        }
-        h2 {
-            font-weight: 700;
-            color: #2d3748;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        .form-label {
-            font-weight: 500;
-            color: #374151;
-        }
-        .btn-warning {
-            background: #f59e42;
-            border: none;
-        }
-        .btn-warning:hover {
-            background: #e07c1f;
-        }
-        .btn-secondary {
-            margin-left: 10px;
-        }
-        .alert {
-            margin-top: 10px;
-        }
-        pre {
-            background: #f3f4f6;
-            padding: 10px;
-            border-radius: 6px;
         }
         .progress-container {
             display: none;
             margin-top: 20px;
         }
-
         .progress {
             height: 25px;
-            background-color: #f0f0f0;
             border-radius: 15px;
-            overflow: hidden;
         }
-
-        .progress-bar {
-            background-color: #048315ff;
-            transition: width 0.3s ease;
-        }
-
-        #importStatus {
-            margin-top: 10px;
-            text-align: center;
-            color: #666;
-        }
-
         .loading-overlay {
             display: none;
             position: fixed;
@@ -138,45 +169,57 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["import_file"])) {
     </style>
 </head>
 <body>
-<div class="container my-5">
-    <h2>Import Residents (CSV)</h2>
-    <?php if ($successMessage): ?>
-        <div class="alert alert-success"><?= htmlspecialchars($successMessage) ?></div>
-    <?php endif; ?>
-    <?php if ($errorMessage): ?>
-        <div class="alert alert-danger"><?= htmlspecialchars($errorMessage) ?></div>
-    <?php endif; ?>
-    <form method="post" enctype="multipart/form-data" id="importForm">
-        <div class="mb-3">
-            <label for="import_file" class="form-label">Choose CSV file</label>
-            <input type="file" class="form-control" name="import_file" id="import_file" accept=".csv" required>
+    <div class="container my-5">
+        <h2 class="text-center mb-4">Import Residents (CSV)</h2>
+        
+        <?php if ($successMessage): ?>
+            <div class="alert alert-success alert-dismissible fade show">
+                <?= htmlspecialchars($successMessage) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+        
+        <?php if ($errorMessage): ?>
+            <div class="alert alert-danger alert-dismissible fade show">
+                <?= htmlspecialchars($errorMessage) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+        
+        <form method="post" enctype="multipart/form-data" id="importForm">
+            <div class="mb-3">
+                <label for="import_file" class="form-label">Choose CSV file</label>
+                <input type="file" class="form-control" name="import_file" id="import_file" accept=".csv" required>
+            </div>
+            
+            <div class="d-flex justify-content-between">
+                <button type="submit" class="btn btn-primary" id="importBtn">Import</button>
+                <a href="../main.php" class="btn btn-secondary">Back</a>
+            </div>
+        </form>
+        
+        <div class="progress-container" id="progressContainer">
+            <div class="progress">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                     role="progressbar" style="width: 0%" 
+                     aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+            </div>
+            <div id="importStatus" class="text-center mt-2">Preparing to import...</div>
         </div>
-        <button type="submit" class="btn btn-warning" id="importBtn">Import</button>
-        <a href="../main.php" class="btn btn-secondary">Back</a>
-    </form>
-
-    <!-- Add Progress Bar -->
-    <div class="progress-container" id="progressContainer">
-        <div class="progress">
-            <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                 role="progressbar" 
-                 aria-valuenow="0" 
-                 aria-valuemin="0" 
-                 aria-valuemax="100">0%</div>
+        
+        <div class="mt-4">
+            <h5>CSV Format:</h5>
+            <pre class="bg-light p-3 rounded">
+name,age,sex,barangay,address,contact,birthday
+John Doe,30,Male,Barangay 1,123 St,09171234567,1993-05-15
+Jane Smith,28,Female,Barangay 2,456 St,09176543210,1995-08-25
+</pre>
         </div>
-        <div id="importStatus">Preparing to import...</div>
     </div>
 
-    <div class="mt-3">
-        <strong>CSV Format:</strong>
-        <pre>name,age,sex,barangay,address,contact,birthday</pre>
-    </div>
-</div>
+    <div class="loading-overlay" id="loadingOverlay"></div>
 
-<div class="loading-overlay" id="loadingOverlay"></div>
-
-<!-- Add this before closing body tag -->
-<script>
+    <script>
 document.getElementById('importForm').addEventListener('submit', function(e) {
     const progressContainer = document.getElementById('progressContainer');
     const progressBar = progressContainer.querySelector('.progress-bar');
