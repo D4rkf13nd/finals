@@ -1,73 +1,128 @@
--- Create the database
+-- Create Database
 CREATE DATABASE IF NOT EXISTS dashboard_db;
 USE dashboard_db;
 
--- Users table
+-- Create Users Table
 CREATE TABLE users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
+    user_id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    contact VARCHAR(20),
-    profile_picture VARCHAR(255),
     role ENUM('admin', 'user') DEFAULT 'user',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_username (username),
+    INDEX idx_role (role)
 );
 
--- Population data table
+-- Create Population Data Table
 CREATE TABLE pop_data (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
     age INT NOT NULL,
-    sex ENUM('male', 'female', 'lgbtq') NOT NULL,
+    sex ENUM('Male', 'Female', 'LGBTQ') NOT NULL,
     barangay VARCHAR(50) NOT NULL,
     address VARCHAR(255) NOT NULL,
-    contact VARCHAR(20) NOT NULL,
+    contact VARCHAR(20),
     birthday DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    -- Indexes for frequently accessed columns
+    INDEX idx_name (name),
+    INDEX idx_age (age),
+    INDEX idx_sex (sex),
+    INDEX idx_barangay (barangay),
+    INDEX idx_birthday (birthday),
+    -- Composite indexes for common searches
+    INDEX idx_name_age (name, age),
+    INDEX idx_barangay_age (barangay, age),
+    INDEX idx_generation_search (birthday, age, barangay)
 );
 
--- Events table
-CREATE TABLE events (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    start_date DATE NOT NULL,
-    end_date DATE,
-    time TIME,
-    type VARCHAR(50),
-    user_id INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
+-- Insert Default Admin User
+INSERT INTO users (username, password, role) VALUES 
+('admin', '$2y$10$YourHashedPasswordHere', 'admin');
 
--- Settings table
-CREATE TABLE settings (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    theme VARCHAR(20) DEFAULT 'light',
-    refresh_interval INT DEFAULT 30,
-    timezone VARCHAR(50) DEFAULT 'UTC',
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
+-- Generation Query
+CREATE VIEW generation_stats AS
+SELECT 
+    CASE 
+        WHEN YEAR(birthday) BETWEEN 1997 AND 2012 THEN 'Gen_Z'
+        WHEN YEAR(birthday) BETWEEN 1981 AND 1996 THEN 'Millennials'
+        WHEN YEAR(birthday) BETWEEN 1965 AND 1980 THEN 'Gen_X'
+        WHEN YEAR(birthday) BETWEEN 1946 AND 1964 THEN 'Boomers'
+        WHEN YEAR(birthday) BETWEEN 1928 AND 1945 THEN 'Silent'
+    END as generation,
+    COUNT(*) as count
+FROM pop_data
+WHERE birthday IS NOT NULL
+GROUP BY generation;
 
--- Insert default admin user
-INSERT INTO users (name, email, password, role) VALUES 
-('Admin', 'admin@example.com', '$2y$10$YourHashedPasswordHere', 'admin');
+-- Age Group Query
+CREATE VIEW age_group_stats AS
+SELECT 
+    CASE 
+        WHEN age BETWEEN 18 AND 30 THEN '18-30'
+        WHEN age BETWEEN 31 AND 50 THEN '31-50'
+        WHEN age BETWEEN 51 AND 60 THEN '51-60'
+    END as age_group,
+    COUNT(*) as count
+FROM pop_data
+GROUP BY age_group;
 
--- Sample barangay data
-INSERT INTO pop_data (name, age, sex, barangay, address, contact, birthday) VALUES 
-('John Doe', 25, 'male', 'Barangay 1', '123 Main St', '09123456789', '1998-05-15'),
-('Jane Smith', 30, 'female', 'Barangay 2', '456 Park Ave', '09187654321', '1993-08-22'),
-('Alex Rivera', 28, 'lgbtq', 'Barangay 3', '789 Rainbow St', '09456123789', '1995-12-10');
+-- Gender Distribution Query
+CREATE VIEW gender_stats AS
+SELECT sex, COUNT(*) as count
+FROM pop_data
+GROUP BY sex;
 
--- Sample events
-INSERT INTO events (title, description, start_date, type, user_id) VALUES 
-('Community Meeting', 'Monthly community gathering', '2025-08-15', 'meeting', 1),
-('Health Program', 'Free medical checkup', '2025-08-20', 'health', 1);
+-- Barangay Distribution Query
+CREATE VIEW barangay_stats AS
+SELECT barangay, COUNT(*) as count
+FROM pop_data
+GROUP BY barangay;
 
--- Create indexes for better performance
-CREATE INDEX idx_pop_data_barangay ON pop_data(barangay);
-CREATE INDEX idx_pop_data_sex ON pop_data(sex);
-CREATE INDEX idx_events_date ON events(start_date);
+-- Search Query with Index Usage
+EXPLAIN SELECT * FROM pop_data 
+WHERE name LIKE ? 
+   OR address LIKE ? 
+   OR barangay LIKE ?
+ORDER BY name;
+
+-- Birthday Statistics Query
+CREATE VIEW birthday_stats AS
+SELECT 
+    COUNT(CASE WHEN DATE_FORMAT(birthday, '%m-%d') = DATE_FORMAT(CURDATE(), '%m-%d') THEN 1 END) as today_birthdays,
+    COUNT(CASE WHEN MONTH(birthday) = MONTH(CURDATE()) THEN 1 END) as month_birthdays
+FROM pop_data;
+
+-- Stored Procedure for Age Updates
+DELIMITER //
+CREATE PROCEDURE update_ages()
+BEGIN
+    UPDATE pop_data 
+    SET age = TIMESTAMPDIFF(YEAR, birthday, CURDATE());
+END //
+DELIMITER ;
+
+-- Event for Automatic Age Updates
+CREATE EVENT update_ages_event
+ON SCHEDULE EVERY 1 DAY
+DO CALL update_ages();
+
+-- Triggers
+DELIMITER //
+CREATE TRIGGER before_insert_pop_data
+BEFORE INSERT ON pop_data
+FOR EACH ROW
+BEGIN
+    SET NEW.age = TIMESTAMPDIFF(YEAR, NEW.birthday, CURDATE());
+END //
+
+CREATE TRIGGER before_update_pop_data
+BEFORE UPDATE ON pop_data
+FOR EACH ROW
+BEGIN
+    IF NEW.birthday != OLD.birthday THEN
+        SET NEW.age = TIMESTAMPDIFF(YEAR, NEW.birthday, CURDATE());
+    END IF;
+END //
+DELIMITER ;
