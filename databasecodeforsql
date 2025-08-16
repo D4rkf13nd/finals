@@ -1,147 +1,168 @@
--- Create the database
+-- Create database
 CREATE DATABASE IF NOT EXISTS dashboard_db;
 USE dashboard_db;
 
--- Create users table first
-CREATE TABLE IF NOT EXISTS users (
-    user_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
+-- Create users table
+CREATE TABLE users (
+    user_id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL,
     password VARCHAR(255) NOT NULL,
+    email VARCHAR(100) NOT NULL,
     role ENUM('admin', 'user') DEFAULT 'user',
-    last_login TIMESTAMP NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE INDEX idx_username (username),
+    UNIQUE INDEX idx_email (email)
+);
 
--- Create user_settings table
-CREATE TABLE IF NOT EXISTS user_settings (
-    user_id INT UNSIGNED PRIMARY KEY,
-    profile_picture VARCHAR(255),
-    name VARCHAR(100),
-    email VARCHAR(100),
-    contact VARCHAR(20),
-    theme VARCHAR(10) DEFAULT 'light',
-    refresh_interval VARCHAR(20) DEFAULT 'real-time',
-    timezone VARCHAR(50) DEFAULT 'Asia/Manila',
-    two_fa_enabled BOOLEAN DEFAULT FALSE,
-    last_password_change TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Create population data table
-CREATE TABLE IF NOT EXISTS pop_data (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+-- Create pop_data table
+CREATE TABLE pop_data (
+    id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
     age INT NOT NULL,
-    sex ENUM('Male', 'Female', 'Other') NOT NULL,
-    barangay VARCHAR(50) NOT NULL,
-    address VARCHAR(255) NOT NULL,
-    contact VARCHAR(20) NULL,
+    sex ENUM('Male', 'Female', 'LGBTQ') NOT NULL,
+    barangay VARCHAR(100) NOT NULL,
+    address TEXT NOT NULL,
+    contact VARCHAR(50),
     birthday DATE NOT NULL,
+    added_by INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at DATETIME NULL,
-    INDEX idx_name (name),
-    INDEX idx_age (age),
+    FOREIGN KEY (added_by) REFERENCES users(user_id) ON DELETE SET NULL,
     INDEX idx_barangay (barangay),
-    INDEX idx_sex (sex),
-    INDEX idx_deleted_at (deleted_at),
-    INDEX idx_created_at (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    INDEX idx_added_by (added_by)
+);
 
--- Create activity logs table
-CREATE TABLE IF NOT EXISTS activity_logs (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT UNSIGNED NOT NULL,
-    action VARCHAR(50) NOT NULL,
-    details TEXT NULL,
+-- Create events table
+CREATE TABLE events (
+    event_id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    event_date DATE NOT NULL,
+    event_time TIME NOT NULL,
+    location VARCHAR(255) NOT NULL,
+    barangay VARCHAR(100) NOT NULL,
+    organizer_id INT,
+    status ENUM('upcoming', 'ongoing', 'completed', 'cancelled') DEFAULT 'upcoming',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    INDEX idx_action (action),
-    INDEX idx_created_at (created_at),
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    FOREIGN KEY (organizer_id) REFERENCES users(user_id) ON DELETE SET NULL,
+    INDEX idx_event_date (event_date),
+    INDEX idx_barangay (barangay)
+);
 
--- Create barangay_stats table for caching
-CREATE TABLE IF NOT EXISTS barangay_stats (
-    barangay VARCHAR(50) PRIMARY KEY,
-    total_population INT NOT NULL DEFAULT 0,
-    age_0_18 INT NOT NULL DEFAULT 0,
-    age_19_30 INT NOT NULL DEFAULT 0,
-    age_31_50 INT NOT NULL DEFAULT 0,
-    age_51_plus INT NOT NULL DEFAULT 0,
-    male_count INT NOT NULL DEFAULT 0,
-    female_count INT NOT NULL DEFAULT 0,
-    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_last_updated (last_updated)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Create activity_logs table
+CREATE TABLE activity_logs (
+    log_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT,
+    action VARCHAR(50) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL,
+    INDEX idx_user_action (user_id, action)
+);
 
--- Create stored procedure for updating statistics
+-- Create barangay_stats table
+CREATE TABLE barangay_stats (
+    stat_id INT PRIMARY KEY AUTO_INCREMENT,
+    barangay VARCHAR(100) NOT NULL,
+    total_population INT DEFAULT 0,
+    male_count INT DEFAULT 0,
+    female_count INT DEFAULT 0,
+    lgbtq_count INT DEFAULT 0,
+    youth_count INT DEFAULT 0,
+    adult_count INT DEFAULT 0,
+    senior_count INT DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE INDEX idx_barangay (barangay)
+);
+
+-- Create user_settings table
+CREATE TABLE user_settings (
+    setting_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    theme VARCHAR(20) DEFAULT 'light',
+    notifications BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    UNIQUE INDEX idx_user_settings (user_id)
+);
+
+-- Create settings table
+CREATE TABLE settings (
+    setting_id INT PRIMARY KEY AUTO_INCREMENT,
+    setting_key VARCHAR(50) NOT NULL,
+    setting_value TEXT,
+    description TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE INDEX idx_setting_key (setting_key)
+);
+
+-- Create stored procedures
 DELIMITER //
-CREATE PROCEDURE update_stats()
+
+-- Add new resident
+CREATE PROCEDURE sp_add_resident(
+    IN p_name VARCHAR(100),
+    IN p_age INT,
+    IN p_sex ENUM('Male', 'Female', 'LGBTQ'),
+    IN p_barangay VARCHAR(100),
+    IN p_address TEXT,
+    IN p_contact VARCHAR(50),
+    IN p_birthday DATE,
+    IN p_added_by INT
+)
+BEGIN
+    INSERT INTO pop_data (name, age, sex, barangay, address, contact, birthday, added_by)
+    VALUES (p_name, p_age, p_sex, p_barangay, p_address, p_contact, p_birthday, p_added_by);
+    
+    -- Log activity
+    INSERT INTO activity_logs (user_id, action, description)
+    VALUES (p_added_by, 'ADD_RESIDENT', CONCAT('Added new resident: ', p_name));
+END //
+
+-- Update barangay statistics
+CREATE PROCEDURE sp_update_barangay_stats()
 BEGIN
     INSERT INTO barangay_stats (
         barangay, 
-        total_population,
-        age_0_18,
-        age_19_30,
-        age_31_50,
-        age_51_plus,
-        male_count,
-        female_count
+        total_population, 
+        male_count, 
+        female_count,
+        lgbtq_count,
+        youth_count,
+        adult_count,
+        senior_count
     )
     SELECT 
         barangay,
-        COUNT(*) as total_population,
-        SUM(CASE WHEN age BETWEEN 0 AND 18 THEN 1 ELSE 0 END) as age_0_18,
-        SUM(CASE WHEN age BETWEEN 19 AND 30 THEN 1 ELSE 0 END) as age_19_30,
-        SUM(CASE WHEN age BETWEEN 31 AND 50 THEN 1 ELSE 0 END) as age_31_50,
-        SUM(CASE WHEN age >= 51 THEN 1 ELSE 0 END) as age_51_plus,
-        SUM(CASE WHEN sex = 'Male' THEN 1 ELSE 0 END) as male_count,
-        SUM(CASE WHEN sex = 'Female' THEN 1 ELSE 0 END) as female_count
+        COUNT(*) as total,
+        SUM(CASE WHEN sex = 'Male' THEN 1 ELSE 0 END),
+        SUM(CASE WHEN sex = 'Female' THEN 1 ELSE 0 END),
+        SUM(CASE WHEN sex = 'LGBTQ' THEN 1 ELSE 0 END),
+        SUM(CASE WHEN age BETWEEN 18 AND 30 THEN 1 ELSE 0 END),
+        SUM(CASE WHEN age BETWEEN 31 AND 59 THEN 1 ELSE 0 END),
+        SUM(CASE WHEN age >= 60 THEN 1 ELSE 0 END)
     FROM pop_data
-    WHERE deleted_at IS NULL
     GROUP BY barangay
     ON DUPLICATE KEY UPDATE
         total_population = VALUES(total_population),
-        age_0_18 = VALUES(age_0_18),
-        age_19_30 = VALUES(age_19_30),
-        age_31_50 = VALUES(age_31_50),
-        age_51_plus = VALUES(age_51_plus),
         male_count = VALUES(male_count),
-        female_count = VALUES(female_count);
+        female_count = VALUES(female_count),
+        lgbtq_count = VALUES(lgbtq_count),
+        youth_count = VALUES(youth_count),
+        adult_count = VALUES(adult_count),
+        senior_count = VALUES(senior_count);
 END //
+
 DELIMITER ;
 
--- Create event to automatically update stats
-CREATE EVENT IF NOT EXISTS hourly_stats_update
-ON SCHEDULE EVERY 1 HOUR
-DO CALL update_stats();
+-- Create event to update statistics daily
+CREATE EVENT evt_daily_stats_update
+ON SCHEDULE EVERY 1 DAY
+STARTS CURRENT_TIMESTAMP
+DO
+    CALL sp_update_barangay_stats();
 
--- Create default admin user (bcrypt password hash)
-INSERT INTO users (username, password, role) 
-VALUES ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin')
-ON DUPLICATE KEY UPDATE user_id = user_id;
-
--- Enable event scheduler
-SET GLOBAL event_scheduler = ON;
-
--- Additional indexes for performance
-CREATE INDEX idx_search ON pop_data(name, address, barangay);
-CREATE INDEX idx_filters ON pop_data(age, sex, barangay);
-
-_____________________________________________________________________
-if ayaw gumana ng login panel:
-
-CREATE TABLE users (
-    user_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'user') DEFAULT 'user',
-    last_login TIMESTAMP NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-
-
-
-
+-- Insert default settings
+INSERT INTO settings (setting_key, setting_value, description) VALUES
+('site_name', 'Population Dashboard', 'Name of the website'),
+('items_per_page', '10', 'Number of items to show per page in tables'),
+('allow_registration', 'true', 'Allow public user registration');
