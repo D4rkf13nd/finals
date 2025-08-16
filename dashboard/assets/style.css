@@ -1,0 +1,512 @@
+/* Variables */
+:root {
+    --primary-color: #050aff;
+    --secondary-color: #ffffff;
+    --text-color: #333333;
+    --border-color: rgba(0, 0, 0, 0.1);
+    --hover-color: rgba(25, 118, 210, 0.05);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --border-radius: 15px;
+    --spacing-sm: 10px;
+    --spacing-md: 20px;
+    --spacing-lg: 30px;
+}
+
+/* Base Styles */
+body {
+    background: #f8f9fa;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* Layout */
+.main-content {
+    margin-left: 250px;
+    padding: var(--spacing-lg);
+}
+
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 250px;
+    padding: var(--spacing-md);
+    background: var(--secondary-color);
+    box-shadow: var(--shadow-md);
+    z-index: 1000;
+}
+
+/* Navigation */
+.sidebar .nav-link {
+    padding: 12px var(--spacing-md);
+    color: var(--text-color);
+    border-radius: 8px;
+    margin-bottom: var(--spacing-sm);
+    transition: all 0.3s ease;
+}
+
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active {
+    background: var(--primary-color);
+    color: var(--secondary-color);
+}
+.counter-total h5{
+    font-size: 2rem;
+    font-weight: 700;
+}
+.counter-18 h6  {
+    font-size: 2rem;
+    font-weight: 700;
+}
+.counter-31 h6{
+    font-size: 2rem;
+    font-weight: 700;
+}
+.counter-51 h6{
+    font-size: 2rem;
+    font-weight: 700;
+}
+/* Cards */
+.counter-total,
+.counter-18,
+.counter-31,
+.counter-51,
+.generation-item {
+    background: var(--secondary-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-md);
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.counter-total p,
+.counter-18 p,
+.counter-31 p,
+.counter-51 p {
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-align: flex-start;
+}
+
+/* Counter Cards */
+.counter-18,
+.counter-31,
+.counter-51 {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    height: 100%;
+    transition: transform 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+/* Counter Headers */
+.counter-total h5,
+.counter-18 h6,
+.counter-31 h6,
+.counter-51 h6 {
+    color: #64748b;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    align-self: flex-start;  /* Align headers to start */
+}
+
+/* Age Headers */
+.counter-18 h6,
+.counter-31 h6,
+.counter-51 h6 {
+    color: #64748b;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+/* Total Population Number */
+.counter-number {
+    color: #1e293b;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    align-self: flex-start;  /* Align number to start */
+}
+
+/* Percentage Numbers */
+.counter-percent {
+    color: #0f172a;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+}
+
+.counter-percent::after {
+    content: '%';
+    font-size: 1.5rem;
+    margin-left: 0.25rem;
+    color: #64748b;
+}
+
+/* Residents Text */
+.counter-total p {
+    color: #64748b;
+    font-size: 1rem;    
+    margin: 0;
+    align-self: flex-start;  /* Align text to start */
+}
+
+/* Typography */
+.generation-z { 
+color: #474444; 
+font-size: 1.5rem;
+font-weight: 700; 
+}
+.generation-millennials { 
+    color: #474444; 
+font-size: 1.5rem;
+font-weight: 700;
+}
+.generation-x { 
+    color: #474444; 
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+.generation-baby { 
+    color: #474444; 
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+.generation-silent { color: #474444; 
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+/* Table Styles */
+.table-responsive {
+    width: 100%;
+    max-height: 500px;
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-color) #f1f1f1;
+}
+
+.table {
+    margin: 0;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table thead th {
+    position: sticky;
+    color: #000;
+    top: 0;
+    background: rgb(255, 255, 255);
+    z-index: 2;
+    padding: 15px;
+    font-weight: 600;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.table tbody td {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table tbody tr:hover {
+    background-color: var(--hover-color);
+    cursor: pointer;
+}
+
+/* Buttons */
+.btn-info {
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-info:hover {
+    background-color: #138496;
+    transform: translateY(-1px);
+}
+
+/* Pagination Styles */
+.pagination {
+    margin: 0;
+}
+
+.pagination .page-link {
+    color: #3b82f6;
+    border-color: #e5e7eb;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.pagination .page-link:hover {
+    background-color: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+}
+
+.page-item:first-child .page-link {
+    border-top-left-radius: 0.5rem;
+    border-bottom-left-radius: 0.5rem;
+}
+
+.page-item:last-child .page-link {
+    border-top-right-radius: 0.5rem;
+    border-bottom-right-radius: 0.5rem;
+}
+
+/* Generation Cards */
+.generation-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.generation-item {
+    background: white;
+    border-radius: 8px;
+    padding: 1.25rem;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+}
+
+.generation-item:hover {
+    transform: translateY(-2px);
+}
+
+/* Generation Labels */
+[class^="generation-"] {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+}
+
+/* Generation Values */
+.generation-value {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-top: 0.5rem;
+    transition: color 0.2s ease;
+}
+
+.generation-item:hover .generation-value {
+    color: #3b82f6;
+}
+
+/* Generation Specific Colors */
+.generation-z { border-bottom: 3px solid #3b82f6; }
+.generation-millennials { border-bottom: 3px solid #10b981; }
+.generation-x { border-bottom: 3px solid #f59e0b; }
+.generation-baby { border-bottom: 3px solid #ec4899; }
+.generation-silent { border-bottom: 3px solid #8b5cf6; }
+
+/* Card Styles */
+.card {
+    background: white;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    background: transparent;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 1rem 1.5rem;
+}
+
+.card-header h5 {
+    color: #1e293b;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* Tooltip Customization */
+.tooltip {
+    font-size: 0.75rem;
+}
+
+/* Media Queries */
+@media (max-width: 1200px) {
+    .generation-container {
+        flex-wrap: nowrap;
+    }
+    
+    .generation-item {
+        flex: 1 1 calc(20% - 1rem);
+    }
+}
+
+@media (max-width: 991px) {
+    .main-content {
+        margin-left: 0;
+        padding: var(--spacing-md);
+    }
+    
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+    
+    .sidebar.show {
+        transform: translateX(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .generation-container {
+        flex-wrap: wrap;
+    }
+
+    .generation-item {
+        flex: 1 1 calc(50% - 0.5rem);
+    }
+}
+
+@media (max-width: 576px) {
+    .generation-item {
+        flex: 1 1 100%;
+    }
+}
+
+/* Dark mode support */
+.darkmode .generation-item {
+    background: #232323;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.darkmode .text-muted {
+    color: #aaa !important;
+}
+
+/* Remove any overflow properties */
+.card-body {
+    overflow: visible;
+}
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+.card-header {
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1rem;
+}
+
+.card-header h5 {
+    margin: 0;
+    color: #1f2937;
+    font-weight: 600;
+}
+
+.card-body {
+    padding: 1rem;
+}
+
+/* Chart Toggle Buttons */
+.chart-toggle {
+    margin-bottom: 1rem;
+}
+
+.chart-toggle .btn {
+    padding: 0.5rem 1rem;
+    margin: 0 0.25rem;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.chart-toggle .btn.active {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Chart Container */
+.chart-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Gender Distribution Chart */
+.gender-chart-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    height: 100%;
+}
+
+.gender-chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.gender-legend {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 1rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+/* Dark Mode Support */
+.darkmode .counter-total, 
+.darkmode .counter-18, 
+.darkmode .counter-31, 
+.darkmode .counter-51 {
+    background: #1f2937;
+}
+
+.darkmode .counter-total h5,
+.darkmode .counter-18 h6,
+.darkmode .counter-31 h6,
+.darkmode .counter-51 h6 {
+    color: #e5e7eb;
+}
+
+.darkmode .counter-total h2 {
+    color: #f3f4f6;
+}
+
+.darkmode .counter-total p {
+    color: #d1d5db;
+}
