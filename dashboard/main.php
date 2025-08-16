@@ -5,31 +5,60 @@ if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
     exit;
 }
 
-// --- Database connection ---
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "dashboard_db";
-$conn = new mysqli($servername, $username, $password, $dbname);
+// Database connection
+require_once "backend/db.php";
 
-// Add pagination variables
-$records_per_page = 10;
+// Initialize variables
+$search = isset($_GET['search']) ? $_GET['search'] : '';
+$sort = isset($_GET['sort']) ? $_GET['sort'] : 'name';
+$order = isset($_GET['order']) ? $_GET['order'] : 'asc';
+$records_per_page = 50;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $records_per_page;
 
+// Validate sort column
+$allowedColumns = ['name', 'age', 'barangay', 'sex', 'birthday'];
+if (!in_array($sort, $allowedColumns)) {
+    $sort = 'name';
+}
+
+// Validate order
+$order = strtolower($order) === 'desc' ? 'DESC' : 'ASC';
+
 // Get total records
 $total_query = "SELECT COUNT(*) as total FROM pop_data";
-$total_result = $conn->query($total_query);
+if ($search) {
+    $total_query .= " WHERE name LIKE ? OR address LIKE ? OR barangay LIKE ?";
+}
+
+$stmt = $conn->prepare($total_query);
+if ($search) {
+    $searchParam = "%$search%";
+    $stmt->bind_param("sss", $searchParam, $searchParam, $searchParam);
+}
+$stmt->execute();
+$total_result = $stmt->get_result();
 $total_records = $total_result->fetch_assoc()['total'];
 $total_pages = ceil($total_records / $records_per_page);
 
-// Get records for current page
-$sql = "SELECT * FROM pop_data ORDER BY id DESC LIMIT ? OFFSET ?";
+// Main query for records
+$sql = "SELECT * FROM pop_data";
+if ($search) {
+    $sql .= " WHERE name LIKE ? OR address LIKE ? OR barangay LIKE ?";
+}
+$sql .= " ORDER BY $sort $order LIMIT ? OFFSET ?";
+
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("ii", $records_per_page, $offset);
+if ($search) {
+    $searchParam = "%$search%";
+    $stmt->bind_param("sssii", $searchParam, $searchParam, $searchParam, $records_per_page, $offset);
+} else {
+    $stmt->bind_param("ii", $records_per_page, $offset);
+}
+
 $stmt->execute();
 $result = $stmt->get_result();
-$records = $result->fetch_all(MYSQLI_ASSOC);
+$residents = $result->fetch_all(MYSQLI_ASSOC);
 
 // --- Barangay List ---
 $barangays = [
@@ -95,9 +124,24 @@ $totalResult = $conn->query($countSql);
 $total_records = $totalResult->fetch_assoc()['total'];
 $total_pages = ceil($total_records / $records_per_page);
 
+$sort = isset($_GET['sort']) ? $_GET['sort'] : 'name';
+$order = isset($_GET['order']) ? $_GET['order'] : 'asc';
+
+// Validate sort column to prevent SQL injection
+$allowedColumns = ['name', 'age', 'barangay', 'sex', 'birthday'];
+if (!in_array($sort, $allowedColumns)) {
+    $sort = 'name';
+}
+
+// Validate order
+$order = strtolower($order) === 'desc' ? 'DESC' : 'ASC';
+
+// Update your main query to include sorting
 $sql = "SELECT * FROM pop_data " . 
        ($search ? "WHERE name LIKE '%$search%' OR address LIKE '%$search%' OR barangay LIKE '%$search%' " : "") . 
+       "ORDER BY $sort $order " .
        "LIMIT $records_per_page OFFSET $offset";
+
 $result = $conn->query($sql);
 
 // --- Generation Counting ---
@@ -196,6 +240,26 @@ if ($barangayResult) {
     while ($row = $barangayResult->fetch_assoc()) {
         if (isset($barangayCounts[$row['barangay']])) {
             $barangayCounts[$row['barangay']] = (int)$row['count'];
+        }
+    }
+}
+
+// Replace the gender counting section with this optimized query
+$genderSql = "SELECT 
+    sex,
+    COUNT(*) as count 
+FROM pop_data 
+WHERE sex IS NOT NULL 
+GROUP BY sex";
+
+$genderResult = $conn->query($genderSql);
+$genderCounts = ["Male" => 0, "Female" => 0];
+
+if ($genderResult) {
+    while ($row = $genderResult->fetch_assoc()) {
+        $sex = ucfirst(strtolower($row['sex']));
+        if (isset($genderCounts[$sex])) {
+            $genderCounts[$sex] = (int)$row['count'];
         }
     }
 }
@@ -359,27 +423,33 @@ if ($barangayResult) {
             <a class="btn btn-warning ms-2" href="backend/import.php">Import </a>
             <button type="button" class="btn btn-info ms-2" id="exportBtn">Export</button>
             
-            <!-- Moved sort dropdown here -->
+            <!-- Replace the existing sort dropdown -->
             <div class="dropdown ms-2">
-                <button class="btn btn-primary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown">
-                    Sort by
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item sort-option" href="#" data-column="name">A-Z</a></li>
-                    <li><a class="dropdown-item sort-option" href="#" data-column="name" data-order="desc">Z-A</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item sort-option" href="#" data-column="age">Age (Ascending)</a></li>
-                    <li><a class="dropdown-item sort-option" href="#" data-column="age" data-order="desc">Age (Descending)</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item sort-option" href="#" data-column="barangay">Barangay (A-Z)</a></li>
-                </ul>
-            </div>
+    <button class="btn btn-primary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown">
+        <?php
+        $currentSort = isset($_GET['sort']) ? $_GET['sort'] : 'name';
+        $currentOrder = isset($_GET['order']) ? $_GET['order'] : 'asc';
+        echo 'Sort by: ' . ucfirst($currentSort) . ' (' . ($currentOrder === 'asc' ? 'A-Z' : 'Z-A') . ')';
+        ?>
+    </button>
+    <ul class="dropdown-menu">
+        <li><a class="dropdown-item sort-option" href="#" data-column="name" data-order="asc">Name (A-Z)</a></li>
+        <li><a class="dropdown-item sort-option" href="#" data-column="name" data-order="desc">Name (Z-A)</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item sort-option" href="#" data-column="age" data-order="asc">Age (Ascending)</a></li>
+        <li><a class="dropdown-item sort-option" href="#" data-column="age" data-order="desc">Age (Descending)</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item sort-option" href="#" data-column="barangay" data-order="asc">Barangay (A-Z)</a></li>
+        <li><a class="dropdown-item sort-option" href="#" data-column="barangay" data-order="desc">Barangay (Z-A)</a></li>
+    </ul>
+</div>
         </form>
+        <!-- Replace the existing table header and body -->
         <div class="table-responsive">
             <table class="table table-striped align-middle">
                 <thead class="table-dark">
                     <tr>
-                        <th>ID</th>
+                        <!-- Removed ID column -->
                         <th>Name</th>
                         <th>Age</th>
                         <th>Sex</th>
@@ -394,7 +464,7 @@ if ($barangayResult) {
                 <?php if (!empty($residents)): ?>
                     <?php foreach ($residents as $row): ?>
                     <tr>
-                        <td><?= htmlspecialchars($row['id']) ?></td>
+                        <!-- Removed ID column -->
                         <td><?= htmlspecialchars($row['name']) ?></td>
                         <td><?= htmlspecialchars($row['age']) ?></td>
                         <td><?= htmlspecialchars($row['sex']) ?></td>
@@ -409,37 +479,39 @@ if ($barangayResult) {
                     </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <tr><td colspan="9" class="text-center">No residents found.</td></tr>
+                    <tr><td colspan="8" class="text-center">No residents found.</td></tr>
                 <?php endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
-    <!-- Add pagination controls -->
-    <div class="d-flex justify-content-between align-items-center mt-4">
-    <div class="text-muted">
-        Showing <?= min(($page - 1) * $records_per_page + 1, $total_records) ?> to 
-        <?= min($page * $records_per_page, $total_records) ?> of <?= $total_records ?> entries
+    <!-- Replace the existing pagination controls -->
+    <div class="pagination-wrapper mt-4">
+    <div class="d-flex flex-column align-items-center">
+        <div class="text-muted mb-2">
+            Showing <?= min(($page - 1) * $records_per_page + 1, $total_records) ?> to 
+            <?= min($page * $records_per_page, $total_records) ?> of <?= $total_records ?> entries
+        </div>
+        <nav aria-label="Page navigation">
+            <ul class="pagination mb-0">
+                <?php if ($page > 1): ?>
+                    <li class="page-item">
+                        <a class="page-link" href="?page=<?= $page-1 ?><?= $search ? "&search=$search" : "" ?>">
+                            Previous
+                        </a>
+                    </li>
+                <?php endif; ?>
+                
+                <?php if ($page < $total_pages): ?>
+                    <li class="page-item">
+                        <a class="page-link" href="?page=<?= $page+1 ?><?= $search ? "&search=$search" : "" ?>">
+                            Next
+                        </a>
+                    </li>
+                <?php endif; ?>
+            </ul>
+        </nav>
     </div>
-    <nav aria-label="Page navigation">
-        <ul class="pagination mb-0">
-            <?php if ($page > 1): ?>
-                <li class="page-item">
-                    <a class="page-link" href="?page=<?= $page-1 ?><?= $search ? "&search=$search" : "" ?>">
-                        Previous
-                    </a>
-                </li>
-            <?php endif; ?>
-            
-            <?php if ($page < $total_pages): ?>
-                <li class="page-item">
-                    <a class="page-link" href="?page=<?= $page+1 ?><?= $search ? "&search=$search" : "" ?>">
-                        Next
-                    </a>
-                </li>
-            <?php endif; ?>
-        </ul>
-    </nav>
 </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
