@@ -139,6 +139,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["import_file"])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Import Residents</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Add SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body { background: #f8fafc; }
         .container {
@@ -156,35 +158,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["import_file"])) {
             height: 25px;
             border-radius: 15px;
         }
-        .loading-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-        }
     </style>
 </head>
 <body>
     <div class="container my-5">
         <h2 class="text-center mb-4">Import Residents (CSV)</h2>
         
-        <?php if ($successMessage): ?>
-            <div class="alert alert-success alert-dismissible fade show">
-                <?= htmlspecialchars($successMessage) ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
-        
-        <?php if ($errorMessage): ?>
-            <div class="alert alert-danger alert-dismissible fade show">
-                <?= htmlspecialchars($errorMessage) ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
+        <!-- Removed PHP alert divs - will use toast instead -->
         
         <form method="post" enctype="multipart/form-data" id="importForm">
             <div class="mb-3">
@@ -217,43 +197,157 @@ Jane Smith,28,Female,Barangay 2,456 St,09176543210,1995-08-25
         </div>
     </div>
 
-    <div class="loading-overlay" id="loadingOverlay"></div>
-
     <script>
-document.getElementById('importForm').addEventListener('submit', function(e) {
-    const progressContainer = document.getElementById('progressContainer');
-    const progressBar = progressContainer.querySelector('.progress-bar');
-    const statusText = document.getElementById('importStatus');
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const importBtn = document.getElementById('importBtn');
+            // Toast utility functions using SweetAlert2
+        const Toast = {
+            // Success toast
+            success: function(message, title = 'Success!') {
+                Swal.fire({
+                    icon: 'success',
+                    title: title,
+                    text: message,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer)
+                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    }
+                });
+            },
 
-    // Show progress container and overlay
-    progressContainer.style.display = 'block';
-    loadingOverlay.style.display = 'block';
-    importBtn.disabled = true;
+            // Error toast
+            error: function(message, title = 'Error!') {
+                Swal.fire({
+                    icon: 'error',
+                    title: title,
+                    text: message,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 4000,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer)
+                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    }
+                });
+            },
 
-    let progress = 0;
-    const interval = setInterval(() => {
-        progress += Math.random() * 30;
-        if (progress > 100) progress = 100;
+            // Warning toast
+            warning: function(message, title = 'Warning!') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: title,
+                    text: message,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3500,
+                    timerProgressBar: true
+                });
+            },
+
+            // Info toast
+            info: function(message, title = 'Info') {
+                Swal.fire({
+                    icon: 'info',
+                    title: title,
+                    text: message,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+            },
+
+            // Loading toast
+            loading: function(message = 'Processing...') {
+                Swal.fire({
+                    icon: 'info',
+                    title: message,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    timerProgressBar: true,
+                    background: '#e3f2fd',
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer)
+                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    }
+                });
+            }
+        };
+
+        // Show toast messages immediately when page loads
+        <?php if ($successMessage): ?>
+            setTimeout(() => {
+                Toast.success('<?= addslashes($successMessage) ?>');
+            }, 100);
+        <?php endif; ?>
         
-        progressBar.style.width = progress + '%';
-        progressBar.setAttribute('aria-valuenow', progress);
-        progressBar.textContent = Math.round(progress) + '%';
-        
-        // Update status text based on progress
-        if (progress < 30) {
-            statusText.textContent = 'Reading CSV file...';
-        } else if (progress < 60) {
-            statusText.textContent = 'Validating data...';
-        } else if (progress < 90) {
-            statusText.textContent = 'Importing records...';
-        } else if (progress === 100) {
-            statusText.textContent = 'Import complete!';
-            clearInterval(interval);
-        }
-    }, 500);
-});
-</script>
+        <?php if ($errorMessage): ?>
+            setTimeout(() => {
+                Toast.error('<?= addslashes($errorMessage) ?>');
+            }, 100);
+        <?php endif; ?>
+
+        // File validation
+        document.getElementById('import_file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && !file.name.toLowerCase().endsWith('.csv')) {
+                Toast.warning('Please select a CSV file only.');
+                e.target.value = '';
+            }
+        });
+
+        // Form submission with loading toast
+        document.getElementById('importForm').addEventListener('submit', function(e) {
+            const fileInput = document.getElementById('import_file');
+            if (!fileInput.files[0]) {
+                e.preventDefault();
+                Toast.warning('Please select a CSV file first.');
+                return;
+            }
+
+            // Show loading toast immediately when form is submitted
+            Toast.loading('Importing CSV file...');
+            
+            // Show progress elements
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = progressContainer.querySelector('.progress-bar');
+            const statusText = document.getElementById('importStatus');
+            const importBtn = document.getElementById('importBtn');
+
+            progressContainer.style.display = 'block';
+            importBtn.disabled = true;
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 20;
+                if (progress > 90) progress = 90;
+                
+                progressBar.style.width = progress + '%';
+                progressBar.setAttribute('aria-valuenow', progress);
+                progressBar.textContent = Math.round(progress) + '%';
+                
+                // Update status text based on progress
+                if (progress < 30) {
+                    statusText.textContent = 'Reading CSV file...';
+                } else if (progress < 60) {
+                    statusText.textContent = 'Validating data...';
+                } else if (progress < 90) {
+                    statusText.textContent = 'Importing records...';
+                }
+            }, 300);
+            
+            // Store interval ID to clear it later if needed
+            window.importInterval = interval;
+        });
+    </script>
 </body>
 </html>

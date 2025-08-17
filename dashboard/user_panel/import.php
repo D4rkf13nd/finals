@@ -144,6 +144,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["file"])) {
     <title>Import Data</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="../assets/style.css">
+    <!-- Add SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         .progress-container {
             display: none;
@@ -177,20 +179,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["file"])) {
         </div>
 
         <div class="container">
-            <?php if ($successMessage): ?>
-                <div class="alert alert-success alert-dismissible fade show">
-                    <?= htmlspecialchars($successMessage) ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endif; ?>
+            <!-- Remove the PHP alert divs and replace with toast -->
             
-            <?php if ($errorMessage): ?>
-                <div class="alert alert-danger alert-dismissible fade show">
-                    <?= htmlspecialchars($errorMessage) ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endif; ?>
-
             <form method="POST" enctype="multipart/form-data" id="importForm" class="mb-4">
                 <div class="mb-3">
                     <label for="file" class="form-label">Choose CSV File</label>
@@ -227,7 +217,19 @@ Jane Smith,28,Female,Barangay 2,456 St,09176543210,1995-08-25</pre>
 
     <div class="loading-overlay" id="loadingOverlay"></div>
 
+    <!-- Include your toast utility -->
+    <script src="../assets/toast.js"></script>
+    
     <script>
+        // Show toast messages based on PHP session data
+        <?php if ($successMessage): ?>
+            Toast.success('<?= addslashes($successMessage) ?>');
+        <?php endif; ?>
+        
+        <?php if ($errorMessage): ?>
+            Toast.error('<?= addslashes($errorMessage) ?>');
+        <?php endif; ?>
+
         document.getElementById('importForm').addEventListener('submit', function(e) {
             const progressContainer = document.getElementById('progressContainer');
             const progressBar = progressContainer.querySelector('.progress-bar');
@@ -235,6 +237,9 @@ Jane Smith,28,Female,Barangay 2,456 St,09176543210,1995-08-25</pre>
             const loadingOverlay = document.getElementById('loadingOverlay');
             const importBtn = document.getElementById('importBtn');
 
+            // Show loading toast
+            Toast.loading('Importing CSV file...');
+            
             progressContainer.style.display = 'block';
             loadingOverlay.style.display = 'block';
             importBtn.disabled = true;
@@ -257,8 +262,18 @@ Jane Smith,28,Female,Barangay 2,456 St,09176543210,1995-08-25</pre>
                 } else if (progress === 100) {
                     statusText.textContent = 'Import complete!';
                     clearInterval(interval);
+                    Swal.close(); // Close the loading toast
                 }
             }, 500);
+        });
+
+        // File validation
+        document.getElementById('file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && !file.name.toLowerCase().endsWith('.csv')) {
+                Toast.warning('Please select a CSV file only.');
+                e.target.value = '';
+            }
         });
     </script>
 </body>
