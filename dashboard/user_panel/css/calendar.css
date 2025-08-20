@@ -1,0 +1,172 @@
+body.darkmode,
+.darkmode .main-content,
+.darkmode .sidebar,
+.darkmode #calendar,
+.darkmode .event-container,
+.darkmode .dashboard-header,
+.darkmode .counter-card,
+.darkmode .counter-total,
+.darkmode .counter-18,
+.darkmode .counter-31,
+.darkmode .counter-51,
+.darkmode .table,
+.darkmode .table-striped > tbody > tr:nth-of-type(odd),
+.darkmode .table thead.table-dark th,
+.darkmode .alert,
+.darkmode .form-control,
+.darkmode .form-select {
+    background: #181818 !important;
+    color: white !important;
+    border: 2px solid #fff !important;
+}
+
+.darkmode .form .form-label,
+.darkmode .sidebar .nav-link,
+.darkmode .sidebar .nav-link.active {
+    background: #232323 !important;
+    color: #fff !important;
+    border-color: white !important;
+}
+
+.darkmode .btn,
+.darkmode .btn-primary,
+.darkmode .btn-secondary,
+.darkmode .btn-success,
+.darkmode .btn-warning,
+.darkmode .btn-danger {
+    filter: grayscale(1) invert(1) brightness(0.8);
+}
+
+.darkmode .form-label,
+.darkmode .table-striped > tbody > tr > td {
+    color: black!important;
+}
+
+#calendar {
+    background: #ffffffff;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.fc-header-toolbar {
+    padding: 15px;
+    margin-bottom: 0 !important;
+}
+
+.fc-day-today {
+    background-color: rgba(55, 136, 216, 0.1) !important;
+}
+
+.fc-event {
+    border-radius: 3px;
+    padding: 3px 5px;
+    margin: 2px 0;
+    border: none;
+    cursor: pointer;
+}
+
+.fc-daygrid-event {
+    white-space: normal;
+}
+
+/* Dark mode calendar support */
+.darkmode .fc {
+    background-color: #181818;
+}
+
+.darkmode .fc-toolbar-title,
+.darkmode .fc th {
+    color: #fff;
+}
+
+.event-container {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px #0001;
+    padding: 20px;
+    min-height: 350px;
+}
+
+/* Weekday Header Colors */
+.fc-col-header-cell {
+    background-color: #070bffff !important;
+    padding: 10px 0 !important;
+}
+
+.fc-col-header-cell-cushion {
+    color: white !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+}
+
+/* Dark Mode Header Support */
+.darkmode .fc-col-header-cell {
+    background-color: #2c3e50 !important;
+}
+
+.darkmode .fc-day-sat,
+.darkmode .fc-day-sun {
+    background-color: #222222 !important;
+}
+
+.darkmode .fc-day-today {
+    background-color: rgba(74, 144, 226, 0.2) !important;
+}
+
+.darkmode .fc-col-header-cell-cushion {
+    color: #000000ff !important;
+}
+
+/* Date Numbers Styling */
+.fc-daygrid-day-number {
+    color: #333333 !important;
+    font-weight: 600 !important;
+    font-size: 1.1em !important;
+    padding: 8px !important;
+    text-decoration: none;
+}
+
+/* Weekend Days */
+.fc-day-sat .fc-daygrid-day-number,
+.fc-day-sun .fc-daygrid-day-number {
+    color: #000000ff !important;
+}
+
+/* Today's Date Special Styling */
+.fc-day-today .fc-daygrid-day-number {
+    color: #000000ff !important;
+    background-color: #fcff36ff !important;
+    border-radius: 50% !important;
+    width: 30px !important;
+    height: 30px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 5px !important;
+}
+
+/* Dark Mode Support */
+.darkmode .fc-daygrid-day-number {
+    color: #ffffff !important;
+}
+
+/* Dark Mode Day Colors */
+.darkmode .fc-day-mon { background-color: #0080ffff !important; }
+.darkmode .fc-day-tue { background-color: #00ff80ff !important; }
+.darkmode .fc-day-wed { background-color: #3c2b1a !important; }
+.darkmode .fc-day-thu { background-color: #2b1a3c !important; }
+.darkmode .fc-day-fri { background-color: #3c1a1a !important; }
+.darkmode .fc-day-sat { background-color: #2a2a2a !important; }
+.darkmode .fc-day-sun { background-color: #2a2a2a !important; }
+
+.darkmode .fc-day-today .fc-daygrid-day-number {
+    background-color: #4a90e2 !important;
+    color: #000000ff !important;
+}
+
+.darkmode .fc-day-sat .fc-daygrid-day-number,
+.darkmode .fc-day-sun .fc-daygrid-day-number {
+    color: #ff6b6b !important;
+}
